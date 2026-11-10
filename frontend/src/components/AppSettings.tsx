@@ -51,6 +51,8 @@ export function AppSettings() {
     for (const r of ROLES) out.models[r] = out.models[r].trim() || DEFAULTS.models[r]
     out.projectsRoot = out.projectsRoot.trim() || DEFAULTS.projectsRoot
     out.workspaceRoot = out.workspaceRoot.trim()
+    out.scientistUrl = out.scientistUrl.trim().replace(/\/+$/, '')
+    out.scientistKey = out.scientistKey.trim()
     out.maxUsdPerDay = Number(budget)
     S.settings = out
     S.providers = await saveSettings(out)
@@ -149,6 +151,15 @@ export function AppSettings() {
         </Field>
         <Field label={t('workspaceRoot')} note={t('workspaceNote')}>
           <Input value={s.workspaceRoot} placeholder="~/Documents/Code/Idea" onChange={(e) => setS({ ...s, workspaceRoot: e.target.value })} />
+        </Field>
+      </Fieldset>
+      <Fieldset legend="AI Scientist">
+        <small className="text-muted-foreground">{t('scientistNote')}</small>
+        <Field label={t('scientistUrl')}>
+          <Input value={s.scientistUrl} placeholder="http://localhost:8080" onChange={(e) => setS({ ...s, scientistUrl: e.target.value })} />
+        </Field>
+        <Field label={t('apiKey')}>
+          <Input type="password" autoComplete="off" placeholder="ais_…" value={s.scientistKey} onChange={(e) => setS({ ...s, scientistKey: e.target.value })} />
         </Field>
       </Fieldset>
       <Fieldset legend={t('autopilot')}>

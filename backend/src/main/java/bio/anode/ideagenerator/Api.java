@@ -303,6 +303,12 @@ public class Api {
         return engine.announce(id, body(raw).path("boardIds"));
     }
 
+    @PostMapping("/ideas/{id:\\d+}/scientist")
+    Object scientist(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
+        body(raw);
+        return engine.toScientist(id);
+    }
+
     @PostMapping("/ideas/{id:\\d+}/spinoff")
     Object spinoff(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         body(raw);

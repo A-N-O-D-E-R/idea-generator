@@ -11,7 +11,7 @@ import type { Idea } from '@/types'
 import { Grow, RankItem, Seg, Swatch } from './Field'
 import {
   MEDAL_ICON, S, copyText, deleteIdea, emit, expand, fail, focusIdea, graph, ideaList, makeProject, notify, openBoard,
-  openDialog, rejudge, reveal, selectIdea, setMedal, spinoff, summarize, duel, useStore,
+  openDialog, rejudge, reveal, selectIdea, setMedal, spinoff, summarize, duel, toScientist, useStore,
 } from '@/store'
 
 const H3 = ({ children }: { children: React.ReactNode }) => (
@@ -74,6 +74,7 @@ function ScoreBlock({ idea }: { idea: Idea }) {
 function IdeaView({ idea }: { idea: Idea }) {
   const { spinoffs } = useStore()
   const [making, setMaking] = useState(false)
+  const [sending, setSending] = useState(false)
   const spun = spinoffs.filter((s) => s.ideaId === idea.id)
   const startCmd = idea.projectPath ? `cd "${idea.projectPath}" && claude` : ''
   const medalBtn = (value: number | null, label: string) => (
@@ -126,6 +127,20 @@ function IdeaView({ idea }: { idea: Idea }) {
           {`📣 ${t('announce')}`}
         </Button>
         <Button variant="secondary" className={act} title={t('spinoffHint')} onClick={() => spinoff(idea)}>{`⤴ ${t('spinoff')}`}</Button>
+        {S.settings.scientistUrl && S.settings.scientistKey ? (
+          <Button
+            variant="secondary"
+            className={act}
+            title={t('scientistHint')}
+            disabled={sending}
+            onClick={() => {
+              setSending(true)
+              toScientist(idea).finally(() => setSending(false))
+            }}
+          >
+            {`🔬 ${t('toScientist')}`}
+          </Button>
+        ) : null}
       </div>
       <div className="my-2.5">
         {idea.projectPath ? (

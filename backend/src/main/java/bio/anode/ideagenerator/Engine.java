@@ -441,6 +441,18 @@ public class Engine {
     }
 
     /** Spin an idea off into its own board, to refine it in its own context. */
+    /** Send an idea to perso/ai-scientist as an ideation job: {job: {id, url, status}}. */
+    public Map<String, Object> toScientist(long ideaId) {
+        Idea idea = mustIdea(ideaId);
+        Board board = mustBoard(idea.boardId());
+        AppSettings s = settings.get();
+        String key = !s.scientistKey().isEmpty() ? s.scientistKey() : java.util.Objects.requireNonNullElse(System.getenv("AI_SCIENTIST_API_KEY"), "");
+        if (s.scientistUrl().isEmpty() || key.isEmpty()) {
+            throw new AppError(400, "no_scientist", "Set the AI Scientist address and API key in the app settings");
+        }
+        return Js.obj("job", Scientist.submit(s.scientistUrl(), key, idea, board.goal()));
+    }
+
     public Map<String, Object> spinoff(long ideaId) {
         Idea idea = mustIdea(ideaId);
         Board parent = mustBoard(idea.boardId());

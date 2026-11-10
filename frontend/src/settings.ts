@@ -17,6 +17,8 @@ export const DEFAULTS: AppSettings = {
   projectsRoot: '~/Projekt/idea-projects',
   maxUsdPerDay: 5,
   workspaceRoot: '',
+  scientistUrl: '',
+  scientistKey: '',
 }
 
 export function loadSettings(): AppSettings {
@@ -33,6 +35,8 @@ export function loadSettings(): AppSettings {
     projectsRoot: saved.projectsRoot || DEFAULTS.projectsRoot,
     maxUsdPerDay: Number.isFinite(saved.maxUsdPerDay) ? saved.maxUsdPerDay! : DEFAULTS.maxUsdPerDay,
     workspaceRoot: saved.workspaceRoot ?? DEFAULTS.workspaceRoot,
+    scientistUrl: saved.scientistUrl ?? DEFAULTS.scientistUrl,
+    scientistKey: saved.scientistKey ?? DEFAULTS.scientistKey,
   }
 }
 

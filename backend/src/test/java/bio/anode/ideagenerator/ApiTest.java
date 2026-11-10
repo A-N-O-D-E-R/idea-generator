@@ -586,4 +586,13 @@ class ApiTest {
     static long duelCalls() {
         return calls.stream().filter(c -> c.schemaName().equals("duel")).count();
     }
+
+    @Test
+    @Order(17)
+    void theScientistHandOffNeedsAnAddressAndKey() {
+        long board = id(newBoard());
+        Res r = api("POST", "/api/ideas/" + id(seed(board, "Idé")) + "/scientist", Map.of());
+        assertEquals(400, r.status());
+        assertEquals("no_scientist", r.data().path("code").asString());
+    }
 }

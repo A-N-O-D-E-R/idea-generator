@@ -144,6 +144,9 @@ export type AppSettings = {
   maxUsdPerDay: number
   /** Idea workspace (INDEX.md + ideas/) that projects are also filed into; '' = off */
   workspaceRoot: string
+  /** perso/ai-scientist: base URL and personal API key (ais_...); '' = off */
+  scientistUrl: string
+  scientistKey: string
 }
 
 export type Dashboard = {

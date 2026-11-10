@@ -383,6 +383,16 @@ function notifyWorkspace(r: WorkspaceResult) {
 export const reveal = (id: number) => api('POST', `/api/ideas/${id}/reveal`, {}).catch(fail)
 export const copyText = (text: string) => navigator.clipboard.writeText(text).then(() => notify(t('copied')))
 
+/** Hand the idea to perso/ai-scientist as an ideation job. */
+export async function toScientist(idea: Idea) {
+  try {
+    const { job } = await api<{ job: { id: string; url: string; status: string } }>('POST', `/api/ideas/${idea.id}/scientist`, {})
+    notify(t('scientistSent', { id: job.id, s: job.status }), 'good', 9000)
+  } catch (e) {
+    fail(e)
+  }
+}
+
 export async function spinoff(idea: Idea) {
   try {
     const r = await api<{ board: Board }>('POST', `/api/ideas/${idea.id}/spinoff`, {})

@@ -39,3 +39,7 @@ The server listens on 127.0.0.1 only. There is no login and API keys pass throug
   families alive* (on by default), the autopilot divides each idea's fitness by how crowded its niche is: the sum of
   `1 - d/0.7` over ideas within distance 0.7, where `d = 1 - Jaccard` of the judge's keywords. Near-copies share their fitness,
   a lone niche keeps its own. Off = upstream selection. Code: `Evolution.sharedFitness`.
+- **Hand-off to AI Scientist.** With *App settings › AI Scientist* (address + personal `ais_…` key from
+  `perso/ai-scientist`, kept in memory only; env fallback `AI_SCIENTIST_API_KEY`), the idea panel gets *To AI Scientist*:
+  it submits `POST /v1/ideations` with a topic built from the idea (Title, Keywords, TL;DR, Abstract; no LLM call here),
+  `maxGenerations` 3 and a $2 budget on the ai-scientist account. Experiment runs are started there. Code: `Scientist.java`.
