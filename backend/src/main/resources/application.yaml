@@ -1,0 +1,17 @@
+server:
+  port: ${PORT:8300}
+  # Local first: loopback only. There is no login, and API keys pass through here.
+  address: ${HOST:127.0.0.1}
+  # Open event streams would hold a graceful shutdown for 30 s; upstream exits at once.
+  shutdown: immediate
+spring:
+  application.name: idea-generator
+  datasource:
+    url: jdbc:sqlite:${DB_FILE:data/ideas.db}
+    hikari:
+      # One connection, like upstream's single synchronous node:sqlite handle; Repo serialises access.
+      maximum-pool-size: 1
+      connection-init-sql: PRAGMA foreign_keys = ON
+  threads.virtual.enabled: true
+  # A built frontend (../frontend/dist) is served as static files when present.
+  web.resources.static-locations: file:../frontend/dist/,classpath:/static/

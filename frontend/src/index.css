@@ -1,0 +1,96 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Idégeneratorn: one dark theme, as upstream. */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  /* Upstream extras. */
+  --color-subtle: var(--subtle);
+  --color-track: var(--track);
+  --color-selected: var(--selected);
+  --color-gold: var(--gold);
+  --color-silver: var(--silver);
+  --color-bronze: var(--bronze);
+  --color-good: var(--good);
+  --color-tip: var(--tip);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: dark;
+  --background: #0f1116;
+  --foreground: #eef0f4;
+  --card: #171a21;
+  --card-foreground: #eef0f4;
+  --popover: #171a21;
+  --popover-foreground: #eef0f4;
+  --primary: #3987e5;
+  --primary-foreground: #ffffff;
+  --secondary: #1e222b;
+  --secondary-foreground: #eef0f4;
+  --muted: #1e222b;
+  --muted-foreground: #8a91a0;
+  --accent: #262b36;
+  --accent-foreground: #eef0f4;
+  --destructive: #e66767;
+  --border: #2a2f3a;
+  --input: #2a2f3a;
+  --ring: #3987e5;
+  --radius: 10px;
+  --subtle: #b9bfcb;
+  --track: #1f3350;
+  --selected: #1c2a40;
+  --gold: #f5c542;
+  --silver: #c9d1d9;
+  --bronze: #cd7f32;
+  --good: #3fb68b;
+  --tip: #232835;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body,
+  #root {
+    @apply h-full overflow-hidden;
+  }
+  body {
+    @apply bg-background text-sm/[1.45] text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  a {
+    @apply text-primary;
+  }
+}

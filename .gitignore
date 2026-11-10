@@ -1,0 +1,7 @@
+backend/target/
+backend/data/
+frontend/node_modules/
+frontend/dist/
+.idea/
+*.iml
+.DS_Store

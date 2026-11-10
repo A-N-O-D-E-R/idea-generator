@@ -1,0 +1,10 @@
+{
+  "name": "idea-generator",
+  "private": true,
+  "scripts": {
+    "backend": "cd backend && JAVA_HOME=$HOME/.sdkman/candidates/java/25.0.2-oracle mvn spring-boot:run",
+    "frontend": "pnpm --dir frontend dev",
+    "build": "pnpm --dir frontend build && cd backend && JAVA_HOME=$HOME/.sdkman/candidates/java/25.0.2-oracle mvn package",
+    "test": "cd backend && JAVA_HOME=$HOME/.sdkman/candidates/java/25.0.2-oracle mvn test && cd ../frontend && pnpm lint"
+  }
+}

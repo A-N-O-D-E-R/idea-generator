@@ -1,0 +1,30 @@
+package bio.anode.ideagenerator;
+
+import java.util.List;
+
+/** An idea on a board, as the API returns it (upstream db.ts Idea). */
+public record Idea(
+        long id,
+        long boardId,
+        String title,
+        String pitch,
+        String kind,
+        String sourceUrl,
+        double x,
+        double y,
+        Integer originality,
+        Integer feasibility,
+        Integer impact,
+        String reason,
+        String judgedAt,
+        Integer medalOverride,
+        int generation,
+        String projectPath,
+        Long originIdeaId,
+        Long originBoardId,
+        String originBoardTitle,
+        List<String> keywords,
+        String createdAt) {
+
+    public record Edge(long from, long to) {}
+}
