@@ -5,7 +5,7 @@ an idea board where language models branch, cross and judge ideas, and an evolut
 
 | Folder | Stack |
 |---|---|
-| `backend/` | Java 25, Spring Boot 4.1, SQLite (JdbcClient), `java.net.http` providers. Same HTTP/SSE API as upstream. |
+| `backend/` | Java 25, Spring Boot 4.1, Postgres + Flyway (JdbcClient), `java.net.http` providers. Same HTTP/SSE API as upstream. |
 | `frontend/` | TypeScript, React 19, Vite 7, Tailwind 4, shadcn. Same UI as upstream. |
 
 ## Run
@@ -15,9 +15,10 @@ pnpm backend    # http://127.0.0.1:8300 (API)
 pnpm frontend   # http://localhost:5173, proxies /api to the backend
 ```
 
-Single process: `pnpm build`, then `cd backend && java -jar target/idea-generator-0.1.0.jar` serves `../frontend/dist` too.
+`pnpm backend` starts Postgres from `backend/compose.yaml` (Docker). Single process: `pnpm build`, then
+`cd backend && java -jar target/idea-generator-0.1.0.jar` (with `SPRING_DATASOURCE_URL`/`_USERNAME`/`_PASSWORD`) serves `../frontend/dist` too.
 
-Needs Java 25 (scripts use `~/.sdkman/candidates/java/25.0.2-oracle`), Node 20.19+, pnpm.
+Needs Docker, Java 25 (scripts use `~/.sdkman/candidates/java/25.0.2-oracle`), Node 20.19+, pnpm.
 Vite stays on 7: Vite 8's native bundler needs AVX2.
 
 The server listens on 127.0.0.1 only. There is no login and API keys pass through it: **do not expose it** as is.

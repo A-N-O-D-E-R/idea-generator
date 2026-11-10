@@ -15,19 +15,20 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.LongFunction;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Server-side autopilot for boards in automatic mode, with a rate limiter
  * (upstream autopilot.ts).
  *
  * Limits, checked in this order before every step:
- *   1. global dollars per local day (app setting, across all boards)
+ *   1. global dollars per local day (the tenant's app setting, across the tenant's boards)
  *   2. the board's dollars per local day
  *   3. error backoff (30 s, doubling, max 15 min)
  *   4. the board's steps per hour (sliding window)
@@ -92,15 +93,20 @@ public class Autopilot {
 
     private final Repo repo;
     private final Engine.Bus bus;
-    private final LongFunction<Engine.Step> autoStep;
-    private final Supplier<AppSettings> settings;
+    /** One step on a board: (tenant, boardId) -> what it did. */
+    public interface StepFn {
+        Engine.Step step(String tenant, long boardId);
+    }
+
+    private final StepFn autoStep;
+    private final Function<String, AppSettings> settings;
     private final LongSupplier now;
     private final Executor steps;
     private final Map<Long, BoardState> states = new ConcurrentHashMap<>();
     private ScheduledExecutorService timer;
 
     /** steps: where a step runs; tests pass Runnable::run to step synchronously. */
-    public Autopilot(Repo repo, Engine.Bus bus, LongFunction<Engine.Step> autoStep, Supplier<AppSettings> settings, LongSupplier now, Executor steps) {
+    public Autopilot(Repo repo, Engine.Bus bus, StepFn autoStep, Function<String, AppSettings> settings, LongSupplier now, Executor steps) {
         this.repo = repo;
         this.bus = bus;
         this.autoStep = autoStep;
@@ -120,23 +126,24 @@ public class Autopilot {
 
     public synchronized void tick() {
         long t = now.getAsLong();
-        double globalSpent = repo.spentOn(null);
-        for (ObjectNode row : repo.listBoards()) {
-            long id = row.get("id").asLong();
-            Board b = repo.getBoard(id);
-            if (b == null) continue;
-            if (!"auto".equals(b.config().mode())) {
-                if (states.remove(id) != null) bus.emit(id, Engine.event("autopilot", "status", Status.MANUAL));
-                continue;
-            }
+        List<Board> boards = repo.autoBoards();
+        Set<Long> auto = boards.stream().map(Board::id).collect(Collectors.toSet());
+        for (Long id : List.copyOf(states.keySet())) {
+            if (!auto.contains(id) && states.remove(id) != null) bus.emit(id, Engine.event("autopilot", "status", Status.MANUAL));
+        }
+        Map<String, Double> globalSpentOf = new HashMap<>();
+        for (Board b : boards) {
+            long id = b.id();
+            String tenant = b.tenantId();
+            double globalSpent = globalSpentOf.computeIfAbsent(tenant, k -> repo.spentOn(k, null));
             BoardState s = states.computeIfAbsent(id, k -> new BoardState());
             if (s.busy) continue;
             s.steps = new ArrayList<>(s.steps.stream().filter(x -> x > t - HOUR).toList());
-            double boardSpent = repo.spentOn(id);
+            double boardSpent = repo.spentOn(tenant, id);
             int stepsLastHour = s.steps.size();
             double spentToday = Math.round(boardSpent * 10000) / 10000.0;
             Decision d = rateCheck(new RateInput(t, s.steps, s.lastAt, b.config().autopilotSeconds(), b.config().rate().stepsPerHour(),
-                    boardSpent, b.config().rate().usdPerDay(), globalSpent, settings.get().maxUsdPerDay(), s.errors, s.lastErrorAt));
+                    boardSpent, b.config().rate().usdPerDay(), globalSpent, settings.apply(tenant).maxUsdPerDay(), s.errors, s.lastErrorAt));
             if (!d.ok()) {
                 // Keep the last result visible while merely pacing.
                 if (d.reason().equals("pace") && (s.status.state().equals("idle") || s.status.state().equals("error"))) continue;
@@ -148,7 +155,7 @@ public class Autopilot {
             int pace = b.config().autopilotSeconds();
             steps.execute(() -> {
                 try {
-                    Engine.Step r = autoStep.apply(id);
+                    Engine.Step r = autoStep.step(tenant, id);
                     synchronized (s) {
                         if (!r.did().equals("idle")) s.steps.add(now.getAsLong());
                         s.lastAt = now.getAsLong();

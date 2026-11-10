@@ -505,9 +505,8 @@ public final class Providers {
     }
 
     /** A chat function that routes every request by its "provider:model" string. */
-    public static Chat makeChat(Supplier<AppSettings> getSettings) {
+    public static Chat makeChat(AppSettings settings) {
         return r -> {
-            AppSettings settings = getSettings.get();
             ParsedModel pm = parseModel(r.model());
             if (pm.model().isEmpty()) throw new ProviderError("bad_model", "No model given in \"" + r.model() + "\"");
             return switch (pm.provider().type) {

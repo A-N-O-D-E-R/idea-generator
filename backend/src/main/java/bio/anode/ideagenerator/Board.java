@@ -1,5 +1,6 @@
 package bio.anode.ideagenerator;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,9 @@ public record Board(
         Long originBoardId,
         String originBoardTitle,
         /* BoardSummary as stored: headline, themes, strongest, gaps, nextSteps, ideaCount, lang, createdAt */
-        ObjectNode summary) {
+        ObjectNode summary,
+        /* owner; never sent to the browser */
+        @JsonIgnore String tenantId) {
 
     public record Flow(String system, String expand, String combine) {}
 

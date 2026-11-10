@@ -131,7 +131,7 @@ class ProvidersTest {
     @Test
     void openAiCompatibleStrictSchemaBearerKeyCost() {
         script = s -> new Answer(200, oaiAnswer("{\"title\":\"Ok\"}"));
-        ChatResult out = Providers.makeChat(() -> settingsWith(Map.of("custom", base), Map.of("custom", "k1"))).chat(req("custom:my-model"));
+        ChatResult out = Providers.makeChat(settingsWith(Map.of("custom", base), Map.of("custom", "k1"))).chat(req("custom:my-model"));
         assertEquals(Js.parse("{\"title\":\"Ok\"}"), out.value());
         assertEquals(0.002, out.costUsd());
         Seen s = seen.getLast();
@@ -150,7 +150,7 @@ class ProvidersTest {
             if (s.body().has("temperature")) return new Answer(400, Map.of("error", "Unsupported value: temperature"));
             return new Answer(200, oaiAnswer("Sure! {\"title\":\"Fallback\"}"));
         };
-        ChatResult out = Providers.makeChat(() -> settingsWith(Map.of("lmstudio", base), Map.of())).chat(req("lmstudio:local-model"));
+        ChatResult out = Providers.makeChat(settingsWith(Map.of("lmstudio", base), Map.of())).chat(req("lmstudio:local-model"));
         assertEquals(Js.parse("{\"title\":\"Fallback\"}"), out.value());
         assertEquals(3, seen.size());
         assertTrue(seen.get(2).body().path("messages").path(0).path("content").asString().contains("JSON Schema"), "the schema moved into the prompt");
@@ -162,7 +162,7 @@ class ProvidersTest {
         seen.clear();
         script = s -> new Answer(401, Map.of("error", "bad key"));
         ProviderError e = assertThrows(ProviderError.class,
-                () -> Providers.makeChat(() -> settingsWith(Map.of("azure", base), Map.of("azure", "az"))).chat(req("azure:my-deployment")));
+                () -> Providers.makeChat(settingsWith(Map.of("azure", base), Map.of("azure", "az"))).chat(req("azure:my-deployment")));
         assertEquals("bad_key", e.code);
         assertEquals(1, seen.size());
         assertEquals("az", seen.getFirst().headers().getFirst("api-key"));
@@ -171,7 +171,7 @@ class ProvidersTest {
 
     @Test
     void missingKeyAndMissingSearchAreExplainedNotSent() {
-        var chat = Providers.makeChat(() -> settingsWith(Map.of(), Map.of()));
+        var chat = Providers.makeChat(settingsWith(Map.of(), Map.of()));
         assertEquals("no_key", assertThrows(ProviderError.class, () -> chat.chat(req("openai:gpt-5.4-mini"))).code);
         ChatRequest r = req("ollama:qwen3:8b");
         ChatRequest withSearch = new ChatRequest(r.model(), r.system(), r.user(), r.schemaName(), r.schema(), r.temperature(), null,
@@ -185,7 +185,7 @@ class ProvidersTest {
         script = s -> s.body().has("think") && s.body().path("model").asString().equals("no-think")
                 ? new Answer(400, Map.of("error", "\"no-think\" does not support thinking"))
                 : new Answer(200, Map.of("message", Map.of("content", "{\"title\":\"Lokal\"}")));
-        var chat = Providers.makeChat(() -> settingsWith(Map.of("ollama", base), Map.of()));
+        var chat = Providers.makeChat(settingsWith(Map.of("ollama", base), Map.of()));
         ChatResult out = chat.chat(req("ollama:qwen3:8b"));
         assertEquals(Js.parse("{\"title\":\"Lokal\"}"), out.value());
         assertEquals(0, out.costUsd());
@@ -204,7 +204,7 @@ class ProvidersTest {
         script = s -> new Answer(200, Js.parse("""
                 {"id":"msg_1","type":"message","role":"assistant","model":"claude-sonnet-5-5","stop_reason":"end_turn","stop_sequence":null,
                  "content":[{"type":"text","text":"{\\"title\\":\\"Från Claude\\"}"}],"usage":{"input_tokens":1000,"output_tokens":100}}"""));
-        ChatResult out = Providers.makeChat(() -> settingsWith(Map.of(), Map.of("anthropic", "sk-ant-test"))).chat(req("anthropic:claude-sonnet-5-5"));
+        ChatResult out = Providers.makeChat(settingsWith(Map.of(), Map.of("anthropic", "sk-ant-test"))).chat(req("anthropic:claude-sonnet-5-5"));
         assertEquals(Js.parse("{\"title\":\"Från Claude\"}"), out.value());
         assertEquals((1000 * 2 + 100 * 10) / 1e6, out.costUsd(), 1e-12);
         Seen s = seen.getLast();

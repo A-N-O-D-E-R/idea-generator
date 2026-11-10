@@ -1,0 +1,13 @@
+name: idea-generator
+# Dev database, started by spring-boot-docker-compose on `mvn spring-boot:run` (and kept between runs).
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ideagen
+      POSTGRES_USER: ideagen
+      POSTGRES_PASSWORD: ideagen
+    ports: ["127.0.0.1::5432"]
+    volumes: [ideagen-pg:/var/lib/postgresql/data]
+volumes:
+  ideagen-pg:

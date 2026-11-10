@@ -56,13 +56,11 @@ class ApiTest {
     static volatile List<String> xCitations = List.of();
     static final List<String> revealed = new CopyOnWriteArrayList<>();
     static final Path projectsRoot;
-    static final Path dbFile;
     static final Path workspace;
 
     static {
         try {
             projectsRoot = Files.createTempDirectory("ideagen-projects-");
-            dbFile = Files.createTempDirectory("ideagen-db-").resolve("test.db");
             workspace = Files.createTempDirectory("ideagen-workspace-");
             Files.writeString(workspace.resolve("INDEX.md"), "| Date | Slug | Title | Tags | Status | Summary |\n" + Workspace.TABLE_RULE + "\n");
         } catch (IOException e) {
@@ -72,7 +70,7 @@ class ApiTest {
 
     @DynamicPropertySource
     static void db(DynamicPropertyRegistry r) {
-        r.add("spring.datasource.url", () -> "jdbc:sqlite:" + dbFile);
+        TestDb.register(r);
     }
 
     /** Fake chat: answers by schema name, records every request. */
@@ -118,7 +116,7 @@ class ApiTest {
     static class Fakes {
         @Bean
         Engine.Io io() {
-            return new Engine.Io(ApiTest::fakeChat,
+            return new Engine.Io(s -> ApiTest::fakeChat,
                     url -> {
                         Extract.Page p = pages.get(url);
                         if (p == null) throw new RuntimeException("HTTP 404");
@@ -229,7 +227,7 @@ class ApiTest {
         engine.idle();
         assertEquals(before + 1, calls.size(), "a short seed needs no LLM call, only the judge");
         assertTrue(lastCall("judgement").user().contains("Färre bilresor i staden"), "the judge sees the goal");
-        Idea judged = repo.getIdea(id(s));
+        Idea judged = repo.getIdea(Repo.LOCAL, id(s));
         assertEquals(3, judged.originality());
         assertEquals(List.of("public space", "sound"), judged.keywords(), "keywords are normalised");
 
@@ -239,7 +237,7 @@ class ApiTest {
         assertTrue(lastCall("expand").user().contains("Every idea must serve this goal"));
         assertTrue(lastCall("expand").user().contains("- Lånecyklar"), "existing titles reach the prompt");
         engine.idle();
-        for (JsonNode i : e.path("ideas")) assertNotNull(repo.getIdea(id(i)).judgedAt(), "children are judged in the background");
+        for (JsonNode i : e.path("ideas")) assertNotNull(repo.getIdea(Repo.LOCAL, id(i)).judgedAt(), "children are judged in the background");
 
         long c1 = id(e.path("ideas").path(0)), c2 = id(e.path("ideas").path(1));
         JsonNode c = api("POST", "/api/boards/" + id(board) + "/combine", Map.of("a", c1, "b", c2)).data();
@@ -255,7 +253,7 @@ class ApiTest {
         assertTrue(md.text().contains("> Färre bilresor i staden"));
         assertTrue(md.text().contains("## 🥉 Korsning — 10/15"), "10/15 is bronze");
         assertTrue(md.text().contains("`public space` `sound`"));
-        assertTrue(repo.spentOn(id(board)) > 0, "spend lands on the board");
+        assertTrue(repo.spentOn(Repo.LOCAL, id(board)) > 0, "spend lands on the board");
         judgeScores = new int[]{3, 3, 3};
     }
 
@@ -308,7 +306,7 @@ class ApiTest {
         JsonNode board = newBoard("{\"goal\":\"Ljud i offentliga rum\"}");
         JsonNode s = seed(id(board), "Sjungande parkbänk");
         engine.idle();
-        Idea gold = repo.getIdea(id(s));
+        Idea gold = repo.getIdea(Repo.LOCAL, id(s));
         assertNotNull(gold.projectPath(), "gold -> project");
         assertTrue(gold.projectPath().startsWith(projectsRoot.toString()));
         assertTrue(gold.projectPath().endsWith("sjungande-bank"), "slug is ASCII: " + gold.projectPath());
@@ -331,7 +329,7 @@ class ApiTest {
         api("PATCH", "/api/boards/" + id(off), Js.parse("{\"config\":{\"autoProjectOnGold\":false}}"));
         JsonNode s2 = seed(id(off), "Ännu en guldidé");
         engine.idle();
-        assertNull(repo.getIdea(id(s2)).projectPath());
+        assertNull(repo.getIdea(Repo.LOCAL, id(s2)).projectPath());
         judgeScores = new int[]{3, 3, 3};
     }
 
@@ -363,7 +361,7 @@ class ApiTest {
 
         JsonNode local = seed(id(b), "Cykelfiler");
         JsonNode child = api("POST", "/api/boards/" + id(b) + "/combine", Map.of("a", id(guest), "b", id(local))).data();
-        List<Idea> lineage = repo.lineage(id(child.path("idea")));
+        List<Idea> lineage = repo.lineage(Repo.LOCAL, id(child.path("idea")));
         assertTrue(lineage.stream().anyMatch(i -> i.title().equals("Visslande trafikljus")) && lineage.stream().anyMatch(i -> i.title().equals("Cykelfiler")));
         assertTrue(lineage.stream().anyMatch(i -> i.boardId() == id(a)), "lineage follows the guest home");
         engine.idle();
@@ -498,7 +496,7 @@ class ApiTest {
         assertEquals(502, r.status());
         assertEquals("no_key", r.data().path("code").asString());
         assertEquals("OpenRouter: no API key", r.data().path("error").asString());
-        assertEquals(1, repo.listIdeas(id(board)).size());
+        assertEquals(1, repo.listIdeas(Repo.LOCAL, id(board)).size());
     }
 
     @Test
@@ -510,7 +508,7 @@ class ApiTest {
         assertEquals("url_unreadable", api("POST", "/api/boards/" + id(board) + "/seed", Map.of("text", "https://example.com/nej")).data().path("code").asString());
         assertEquals("url_no_text", api("POST", "/api/boards/" + id(board) + "/seed", Map.of("text", "https://example.com/tom")).data().path("code").asString());
         engine.idle();
-        assertEquals(1, repo.listIdeas(id(board)).size());
+        assertEquals(1, repo.listIdeas(Repo.LOCAL, id(board)).size());
     }
 
     @Test
@@ -581,9 +579,9 @@ class ApiTest {
         assertEquals(2, duelCalls() - before, "asked twice, order swapped");
         long a = d.path("a").asLong();
         assertEquals(a == win ? 1.0 : 0.0, d.path("scoreA").asDouble(), "the same idea wins in both positions");
-        assertEquals(1016.0, repo.getIdea(win).elo(), 1e-9);
-        assertEquals(984.0, repo.getIdea(lose).elo(), 1e-9);
-        assertEquals(1, repo.getIdea(win).duels());
+        assertEquals(1016.0, repo.getIdea(Repo.LOCAL, win).elo(), 1e-9);
+        assertEquals(984.0, repo.getIdea(Repo.LOCAL, lose).elo(), 1e-9);
+        assertEquals(1, repo.getIdea(Repo.LOCAL, win).duels());
         assertTrue(api("GET", "/api/boards/" + board).text().contains("\"elo\":1016.0"));
     }
 

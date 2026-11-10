@@ -6,12 +6,9 @@ server:
   shutdown: immediate
 spring:
   application.name: idea-generator
-  datasource:
-    url: jdbc:sqlite:${DB_FILE:data/ideas.db}
-    hikari:
-      # One connection, like upstream's single synchronous node:sqlite handle; Repo serialises access.
-      maximum-pool-size: 1
-      connection-init-sql: PRAGMA foreign_keys = ON
+  # Postgres. Dev: compose.yaml is started by spring-boot-docker-compose (mvn spring-boot:run).
+  # Elsewhere set SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME and SPRING_DATASOURCE_PASSWORD.
+  docker.compose.lifecycle-management: start-only
   threads.virtual.enabled: true
   # A built frontend (../frontend/dist) is served as static files when present.
   web.resources.static-locations: file:../frontend/dist/,classpath:/static/

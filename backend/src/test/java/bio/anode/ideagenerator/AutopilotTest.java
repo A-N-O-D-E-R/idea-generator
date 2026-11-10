@@ -20,7 +20,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
-import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
 class AutopilotTest {
 
@@ -82,7 +81,7 @@ class AutopilotTest {
     }
 
     static Repo memoryRepo() {
-        return new Repo(new SingleConnectionDataSource("jdbc:sqlite::memory:", true));
+        return TestDb.freshRepo();
     }
 
     @Test
@@ -92,14 +91,14 @@ class AutopilotTest {
         List<Long> steps = new ArrayList<>();
         AtomicBoolean fail = new AtomicBoolean();
         Engine.Bus bus = new Engine.Bus();
-        Autopilot ap = new Autopilot(repo, bus, boardId -> {
+        Autopilot ap = new Autopilot(repo, bus, (t, boardId) -> {
             if (fail.get()) throw new AppError(502, "no_key", "no key");
             steps.add(boardId);
-            repo.addSpend(boardId, 0.3);
+            repo.addSpend(Repo.LOCAL, boardId, 0.3);
             return new Engine.Step("combine", null, null);
-        }, AppSettings::defaults, now::get, Runnable::run);
-        Board auto = repo.createBoard("Auto", Js.parse("{\"mode\":\"auto\",\"autopilotSeconds\":10,\"rate\":{\"stepsPerHour\":3,\"usdPerDay\":100}}"));
-        repo.createBoard("Manual", null);
+        }, t -> AppSettings.defaults(), now::get, Runnable::run);
+        Board auto = repo.createBoard(Repo.LOCAL, "Auto", Js.parse("{\"mode\":\"auto\",\"autopilotSeconds\":10,\"rate\":{\"stepsPerHour\":3,\"usdPerDay\":100}}"));
+        repo.createBoard(Repo.LOCAL, "Manual", null);
 
         ap.tick();
         assertEquals(List.of(auto.id()), steps, "the manual board never runs");
@@ -132,13 +131,13 @@ class AutopilotTest {
         assertEquals(4, steps.size(), "recovers after the backoff");
 
         // Budget: the board has spent 4 x $0.30; a $1 cap stops it until midnight.
-        repo.updateBoard(auto.id(), null, null, Js.parse("{\"rate\":{\"stepsPerHour\":3,\"usdPerDay\":1}}"));
+        repo.updateBoard(Repo.LOCAL, auto.id(), null, null, Js.parse("{\"rate\":{\"stepsPerHour\":3,\"usdPerDay\":1}}"));
         now.addAndGet(20_000);
         ap.tick();
         assertEquals("board_budget", ap.status(auto.id()).state());
         assertEquals(4, steps.size());
 
-        repo.updateBoard(auto.id(), null, null, Js.parse("{\"mode\":\"manual\"}"));
+        repo.updateBoard(Repo.LOCAL, auto.id(), null, null, Js.parse("{\"mode\":\"manual\"}"));
         ap.tick();
         assertEquals("manual", ap.status(auto.id()).state());
     }
@@ -157,17 +156,17 @@ class AutopilotTest {
             };
             return new ChatResult(Js.parse(value), 0);
         };
-        Engine engine = new Engine(repo, AppSettings::defaults, new Engine.Io(chat, u -> null, g -> List.of(), p -> {}, false, q -> List.of()));
-        Board board = repo.createBoard("B", null);
-        assertEquals(new Engine.Step("idle", "empty", null), engine.autoStep(board.id()));
-        repo.insertIdea(new Repo.NewIdea(board.id(), "Frö", "", "seed", null, 0, 0, 0));
+        Engine engine = new Engine(repo, t -> AppSettings.defaults(), new Engine.Io(s -> chat, u -> null, g -> List.of(), p -> {}, false, q -> List.of()));
+        Board board = repo.createBoard(Repo.LOCAL, "B", null);
+        assertEquals(new Engine.Step("idle", "empty", null), engine.autoStep(Repo.LOCAL, board.id()));
+        repo.insertIdea(Repo.LOCAL, new Repo.NewIdea(board.id(), "Frö", "", "seed", null, 0, 0, 0));
 
         List<String> did = new ArrayList<>();
-        for (int i = 0; i < 6; i++) did.add(engine.autoStep(board.id()).did());
+        for (int i = 0; i < 6; i++) did.add(engine.autoStep(Repo.LOCAL, board.id()).did());
         assertEquals("judge", did.get(0), "an unjudged seed is judged first");
         assertEquals("expand", did.get(1), "a pool under three grows by expanding");
         assertTrue(did.contains("combine"), "breeds once the pool is big enough: " + did);
-        List<Idea> ideas = repo.listIdeas(board.id());
+        List<Idea> ideas = repo.listIdeas(Repo.LOCAL, board.id());
         assertTrue(ideas.stream().allMatch(i -> i.judgedAt() != null), "every step leaves its ideas judged");
         assertTrue(ideas.stream().anyMatch(i -> i.kind().equals("combine") && i.generation() >= 2));
     }

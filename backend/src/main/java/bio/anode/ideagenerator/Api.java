@@ -81,8 +81,13 @@ public class Api {
         return "en".equals(v) ? "en" : "sv";
     }
 
+    /** The signed-in tenant. */
+    private String tenant() {
+        return Repo.LOCAL;
+    }
+
     private Board mustBoard(long id) {
-        Board b = repo.getBoard(id);
+        Board b = repo.getBoard(tenant(), id);
         if (b == null) throw new AppError(404, "not_found", "Board not found");
         return b;
     }
@@ -93,7 +98,7 @@ public class Api {
                 "id", p.id(), "label", p.label, "local", p.local, "needsKey", p.needsKey, "search", p.search, "note", p.note,
                 "keySource", Providers.keySource(s, p), "baseUrl", s.baseUrls().get(p.id()))).toList();
         return Js.obj("settingsReceived", runtime.received(), "providers", providers,
-                "spentToday", repo.spentOn(null), "spentTotal", repo.spentTotal());
+                "spentToday", repo.spentOn(tenant(), null), "spentTotal", repo.spentTotal(tenant()));
     }
 
     // ---- app settings: owned by the browser, held here in memory only
@@ -127,7 +132,7 @@ public class Api {
 
     @GetMapping("/boards")
     Object listBoards() {
-        return Js.obj("boards", repo.listBoards());
+        return Js.obj("boards", repo.listBoards(tenant()));
     }
 
     @PostMapping("/boards")
@@ -136,25 +141,26 @@ public class Api {
         String lang = lang(b.path("lang").isString() ? b.path("lang").stringValue() : null);
         String title = Js.str(b.path("title"), 120);
         Long templateId = Js.isInt(b.path("templateId")) ? b.path("templateId").asLong() : null;
-        return Js.obj("board", repo.createBoard(title.isEmpty() ? (lang.equals("en") ? "New board" : "Ny tavla") : title,
+        return Js.obj("board", repo.createBoard(tenant(), title.isEmpty() ? (lang.equals("en") ? "New board" : "Ny tavla") : title,
                 Js.str(b.path("goal"), 600), templateId, Js.object().put("lang", lang), null));
     }
 
     @GetMapping("/boards/{id:\\d+}")
     Object getBoard(@PathVariable long id) {
         Board board = mustBoard(id);
-        List<Idea> ideas = repo.listIdeas(board.id());
-        return Js.obj("board", board, "ideas", ideas, "edges", repo.listEdges(board.id()), "leads", repo.listLeads(board.id()),
-                "spinoffs", repo.spinoffs(board.id()),
+        String t = tenant();
+        List<Idea> ideas = repo.listIdeas(t, board.id());
+        return Js.obj("board", board, "ideas", ideas, "edges", repo.listEdges(t, board.id()), "leads", repo.listLeads(t, board.id()),
+                "spinoffs", repo.spinoffs(t, board.id()),
                 "judging", ideas.stream().filter(i -> engine.judging.contains(i.id())).map(Idea::id).toList(),
-                "autopilot", autopilot.status(board.id()), "spentToday", repo.spentOn(board.id()));
+                "autopilot", autopilot.status(board.id()), "spentToday", repo.spentOn(t, board.id()));
     }
 
     @PatchMapping("/boards/{id:\\d+}")
     Object patchBoard(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         JsonNode b = body(raw);
         JsonNode title = b.path("title"), goal = b.path("goal"), config = b.path("config");
-        return engine.updateBoard(id,
+        return engine.updateBoard(tenant(), id,
                 title.isString() && !Js.trim(title.stringValue()).isEmpty() ? Js.str(title, 120) : null,
                 goal.isString() ? Js.str(goal, 600) : null,
                 config.isContainer() ? config : null);
@@ -162,7 +168,7 @@ public class Api {
 
     @DeleteMapping("/boards/{id:\\d+}")
     Object deleteBoard(@PathVariable long id) {
-        return Js.obj("ok", repo.deleteBoard(id));
+        return Js.obj("ok", repo.deleteBoard(tenant(), id));
     }
 
     @PutMapping("/boards/{id:\\d+}/positions")
@@ -176,7 +182,7 @@ public class Api {
                         Math.round(p.path("x").asDouble() * 10) / 10.0, Math.round(p.path("y").asDouble() * 10) / 10.0));
             }
         }
-        repo.savePositions(id, positions);
+        repo.savePositions(tenant(), id, positions);
         return Js.obj("ok", true, "saved", positions.size());
     }
 
@@ -184,25 +190,25 @@ public class Api {
     ResponseEntity<String> exportBoard(@PathVariable long id, @RequestParam(required = false) String lang) {
         Board board = mustBoard(id);
         return ResponseEntity.ok().contentType(MARKDOWN)
-                .body(Markdown.board(board, repo.listIdeas(board.id()), repo.listEdges(board.id()), lang(lang)));
+                .body(Markdown.board(board, repo.listIdeas(tenant(), board.id()), repo.listEdges(tenant(), board.id()), lang(lang)));
     }
 
     @PostMapping("/boards/{id:\\d+}/duel")
     Object duel(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         body(raw);
-        return engine.duel(id);
+        return engine.duel(tenant(), id);
     }
 
     @PostMapping("/boards/{id:\\d+}/summary")
     Object summary(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         body(raw);
-        return engine.summarize(id);
+        return engine.summarize(tenant(), id);
     }
 
     /** Server-sent events: everything that happens on one board, live. */
     @GetMapping("/boards/{id:\\d+}/events")
     ResponseEntity<?> events(@PathVariable long id) {
-        if (repo.getBoard(id) == null) return ResponseEntity.status(404).body(Map.of("error", "Board not found"));
+        if (repo.getBoard(tenant(), id) == null) return ResponseEntity.status(404).body(Map.of("error", "Board not found"));
         ResponseBodyEmitter emitter = new ResponseBodyEmitter(0L); // 0 = never time out
         var sub = new Object() {
             volatile Runnable off;
@@ -249,13 +255,13 @@ public class Api {
 
     @PostMapping("/boards/{id:\\d+}/seed")
     Object seed(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
-        return engine.seed(id, body(raw));
+        return engine.seed(tenant(), id, body(raw));
     }
 
     @PostMapping("/ideas/{id:\\d+}/expand")
     Object expand(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         body(raw);
-        return engine.expand(id);
+        return engine.expand(tenant(), id);
     }
 
     private static Long intOrNull(JsonNode n) {
@@ -265,54 +271,54 @@ public class Api {
     @PostMapping("/boards/{id:\\d+}/combine")
     Object combine(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         JsonNode b = body(raw);
-        return engine.combine(id, intOrNull(b.path("a")), intOrNull(b.path("b")));
+        return engine.combine(tenant(), id, intOrNull(b.path("a")), intOrNull(b.path("b")));
     }
 
     @PostMapping("/ideas/{id:\\d+}/judge")
     Object judge(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         body(raw);
-        return engine.judge(id);
+        return engine.judge(tenant(), id);
     }
 
     @PatchMapping("/ideas/{id:\\d+}")
     Object patchIdea(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         JsonNode b = body(raw);
         if (!b.has("medalOverride")) throw new AppError(400, "bad_request", "Nothing to change");
-        return engine.setMedal(id, b.get("medalOverride"));
+        return engine.setMedal(tenant(), id, b.get("medalOverride"));
     }
 
     @DeleteMapping("/ideas/{id:\\d+}")
     Object deleteIdea(@PathVariable long id) {
-        return engine.deleteIdea(id);
+        return engine.deleteIdea(tenant(), id);
     }
 
     @PostMapping("/ideas/{id:\\d+}/project")
     Object project(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         body(raw);
-        return engine.createProject(id);
+        return engine.createProject(tenant(), id);
     }
 
     @PostMapping("/ideas/{id:\\d+}/reveal")
     Object reveal(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         body(raw);
-        return engine.reveal(id);
+        return engine.reveal(tenant(), id);
     }
 
     @PostMapping("/ideas/{id:\\d+}/announce")
     Object announce(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
-        return engine.announce(id, body(raw).path("boardIds"));
+        return engine.announce(tenant(), id, body(raw).path("boardIds"));
     }
 
     @PostMapping("/ideas/{id:\\d+}/scientist")
     Object scientist(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         body(raw);
-        return engine.toScientist(id);
+        return engine.toScientist(tenant(), id);
     }
 
     @PostMapping("/ideas/{id:\\d+}/spinoff")
     Object spinoff(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         body(raw);
-        return engine.spinoff(id);
+        return engine.spinoff(tenant(), id);
     }
 
     // ---- leads
@@ -320,48 +326,48 @@ public class Api {
     @PostMapping("/boards/{id:\\d+}/leads/{source:x|research}")
     Object refreshLeads(@PathVariable long id, @PathVariable String source, @RequestBody(required = false) byte[] raw) {
         body(raw);
-        return engine.refreshLeads(id, source);
+        return engine.refreshLeads(tenant(), id, source);
     }
 
     @PostMapping("/leads/{id:\\d+}/seed")
     Object seedLead(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
-        return engine.seedLead(id, body(raw));
+        return engine.seedLead(tenant(), id, body(raw));
     }
 
     @DeleteMapping("/leads/{id:\\d+}")
     Object deleteLead(@PathVariable long id) {
-        return Js.obj("ok", repo.deleteLead(id));
+        return Js.obj("ok", repo.deleteLead(tenant(), id));
     }
 
     // ---- dashboard: keyword trends across all boards
 
     @GetMapping("/dashboard")
     Object dashboard(@RequestParam(required = false) String days) {
-        return repo.dashboard(days(days == null ? 0 : Js.num(days)));
+        return repo.dashboard(tenant(), days(days == null ? 0 : Js.num(days)));
     }
 
     @GetMapping("/keywords/{kw}/ideas")
     Object keywordIdeas(@PathVariable String kw) {
-        return Js.obj("ideas", repo.ideasWithKeyword(kw));
+        return Js.obj("ideas", repo.ideasWithKeyword(tenant(), kw));
     }
 
     // ---- report: insights, ideas and projects across all boards
 
     @GetMapping("/report")
     Object report(@RequestParam(required = false) String days) {
-        return repo.report(days(days == null ? 0 : Js.num(days)));
+        return repo.report(tenant(), days(days == null ? 0 : Js.num(days)));
     }
 
     @PostMapping("/report/synthesis")
     Object synthesis(@RequestBody(required = false) byte[] raw) {
         JsonNode b = body(raw);
-        return engine.synthesize(days(Js.num(b.path("days"))), lang(b.path("lang").isString() ? b.path("lang").stringValue() : null));
+        return engine.synthesize(tenant(), days(Js.num(b.path("days"))), lang(b.path("lang").isString() ? b.path("lang").stringValue() : null));
     }
 
     @GetMapping("/report.md")
     ResponseEntity<String> reportMd(@RequestParam(required = false) String days, @RequestParam(required = false) String lang) {
         return ResponseEntity.ok().contentType(MARKDOWN)
-                .body(Markdown.report(repo.report(days(days == null ? 0 : Js.num(days))), lang(lang)));
+                .body(Markdown.report(repo.report(tenant(), days(days == null ? 0 : Js.num(days))), lang(lang)));
     }
 
     // ---- flow templates
@@ -379,24 +385,27 @@ public class Api {
 
     @GetMapping("/templates")
     Object templates() {
-        return Js.obj("templates", repo.listTemplates());
+        return Js.obj("templates", repo.listTemplates(tenant()));
     }
 
     @PostMapping("/templates")
     Object createTemplate(@RequestBody(required = false) byte[] raw) {
         TemplateBody t = templateBody(body(raw));
-        return Js.obj("template", repo.createTemplate(t.name(), t.system(), t.expand(), t.combine()));
+        return Js.obj("template", repo.createTemplate(tenant(), t.name(), t.system(), t.expand(), t.combine()));
     }
 
     @PutMapping("/templates/{id:\\d+}")
     Object updateTemplate(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         TemplateBody t = templateBody(body(raw));
-        return Js.obj("template", repo.updateTemplate(id, t.name(), t.system(), t.expand(), t.combine()));
+        Board.Template updated = repo.updateTemplate(tenant(), id, t.name(), t.system(), t.expand(), t.combine());
+        if (updated == null) throw new AppError(404, "not_found", "Template not found");
+        return Js.obj("template", updated);
     }
 
     @DeleteMapping("/templates/{id:\\d+}")
     Object deleteTemplate(@PathVariable long id) {
-        if (!repo.deleteTemplate(id)) throw new AppError(400, "last_template", "The last template cannot be deleted");
+        if (repo.findTemplate(tenant(), id) == null) throw new AppError(404, "not_found", "Template not found");
+        if (!repo.deleteTemplate(tenant(), id)) throw new AppError(400, "last_template", "The last template cannot be deleted");
         return Js.obj("ok", true);
     }
 

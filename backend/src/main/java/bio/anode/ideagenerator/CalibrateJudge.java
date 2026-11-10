@@ -51,7 +51,7 @@ public final class CalibrateJudge {
     public static void main(String[] args) {
         int at = List.of(args).indexOf("--model");
         String model = at >= 0 && at + 1 < args.length ? args[at + 1] : AppSettings.defaults().models().get("judge");
-        Llm llm = new Llm(Providers.makeChat(AppSettings::defaults));
+        Llm llm = new Llm(Providers.makeChat(AppSettings.defaults()));
         DoubleAdder cost = new DoubleAdder();
         System.out.println("Judge model: " + model + ", " + RUNS + " runs per idea\n");
 
