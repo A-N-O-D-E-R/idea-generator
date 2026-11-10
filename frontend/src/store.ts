@@ -373,7 +373,11 @@ export async function makeProject(idea: Idea) {
 
 function notifyWorkspace(r: WorkspaceResult) {
   if (r.workspaceError) notify(t('workspaceFailed', { e: r.workspaceError }), 'error', 9000)
-  else if (r.workspace) notify(t(r.workspaceExisted ? 'workspaceExisted' : 'workspaceFiled', { p: r.workspace }), 'good', 9000)
+  else if (r.workspaceDuplicateOf) notify(t('workspaceDuplicate', { s: r.workspaceDuplicateOf }), 'info', 9000)
+  else if (r.workspace) {
+    const related = r.workspaceRelated?.length ? ' ' + t('workspaceRelated', { s: r.workspaceRelated.join(', ') }) : ''
+    notify(t(r.workspaceExisted ? 'workspaceExisted' : 'workspaceFiled', { p: r.workspace }) + related, 'good', 9000)
+  }
 }
 
 export const reveal = (id: number) => api('POST', `/api/ideas/${id}/reveal`, {}).catch(fail)

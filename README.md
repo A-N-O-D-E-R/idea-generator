@@ -28,3 +28,6 @@ The server listens on 127.0.0.1 only. There is no login and API keys pass throug
   Every Claude Code project, made by hand or by the judge on gold, is then also filed there as `ideas/<slug>/PITCH.md` + `LINK.md`,
   with a `raw` row added at the top of the `INDEX.md` table. It reuses the project brief (no extra LLM call) and never overwrites:
   a slug already in `ideas/` or in `INDEX.md` is left alone. Code: `backend/.../Workspace.java`.
+- **Duplicate check before filing.** One call to the board's `brief` model compares the brief with the `INDEX.md` rows.
+  A duplicate (same problem, same mechanism) is not filed; the toast names the existing idea. Up to 4 related ideas are linked
+  both ways in their `LINK.md`. Slugs the model invents are dropped. An empty index costs no call.

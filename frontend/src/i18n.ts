@@ -83,7 +83,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     // app settings
     providers: 'Leverantörer', apiKey: 'API-nyckel', baseUrl: 'Adress', test: 'Testa', testOk: '{n} modeller', keyFrom_browser: 'nyckel här',
     keyFrom_env: 'nyckel från miljön', keyMissing: 'ingen nyckel', local: 'lokal',
-    projectsRoot: 'Mapp för Claude Code-projekt', workspaceRoot: 'Idé-arbetsyta (valfri)', workspaceNote: 'Mapp med INDEX.md. Varje projekt arkiveras också där som ideas/<slug>/PITCH.md.', workspaceFiled: 'Arkiverad i arbetsytan: {p}', workspaceExisted: 'Finns redan i arbetsytan: {p}', workspaceFailed: 'Kunde inte arkivera i arbetsytan: {e}', globalBudget: 'Global gräns, USD per dag', spend: 'Förbrukat: ${today} i dag · ${total} totalt',
+    projectsRoot: 'Mapp för Claude Code-projekt', workspaceRoot: 'Idé-arbetsyta (valfri)', workspaceNote: 'Mapp med INDEX.md. Varje projekt arkiveras också där som ideas/<slug>/PITCH.md.', workspaceFiled: 'Arkiverad i arbetsytan: {p}', workspaceExisted: 'Finns redan i arbetsytan: {p}', workspaceFailed: 'Kunde inte arkivera i arbetsytan: {e}', workspaceDuplicate: 'Inte arkiverad: samma idé finns redan i arbetsytan ({s}).', workspaceRelated: 'Länkad till: {s}.', globalBudget: 'Global gräns, USD per dag', spend: 'Förbrukat: ${today} i dag · ${total} totalt',
     settingsNote: 'Allt här sparas i webbläsaren (localStorage). Servern får inställningarna i minnet och skriver aldrig nycklar till disk.',
     settingsSaved: 'Inställningarna sparades',
     needKey: 'Lägg in en API-nyckel för {p} under Inställningar.',
@@ -182,7 +182,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     deleteBoard: 'Delete board', confirmDeleteBoard: 'Delete the board "{t}" with all its ideas?',
     providers: 'Providers', apiKey: 'API key', baseUrl: 'Address', test: 'Test', testOk: '{n} models', keyFrom_browser: 'key here',
     keyFrom_env: 'key from environment', keyMissing: 'no key', local: 'local',
-    projectsRoot: 'Folder for Claude Code projects', workspaceRoot: 'Idea workspace (optional)', workspaceNote: 'Folder with INDEX.md. Every project is also filed there as ideas/<slug>/PITCH.md.', workspaceFiled: 'Filed in the workspace: {p}', workspaceExisted: 'Already in the workspace: {p}', workspaceFailed: 'Could not file into the workspace: {e}', globalBudget: 'Global limit, USD per day', spend: 'Spent: ${today} today · ${total} in total',
+    projectsRoot: 'Folder for Claude Code projects', workspaceRoot: 'Idea workspace (optional)', workspaceNote: 'Folder with INDEX.md. Every project is also filed there as ideas/<slug>/PITCH.md.', workspaceFiled: 'Filed in the workspace: {p}', workspaceExisted: 'Already in the workspace: {p}', workspaceFailed: 'Could not file into the workspace: {e}', workspaceDuplicate: 'Not filed: the same idea is already in the workspace ({s}).', workspaceRelated: 'Linked to: {s}.', globalBudget: 'Global limit, USD per day', spend: 'Spent: ${today} today · ${total} in total',
     settingsNote: 'Everything here is stored in the browser (localStorage). The server keeps settings in memory and never writes keys to disk.',
     settingsSaved: 'Settings saved',
     needKey: 'Add an API key for {p} under Settings.',

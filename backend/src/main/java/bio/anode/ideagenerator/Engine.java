@@ -188,9 +188,13 @@ public class Engine {
         if (!workspace.isEmpty()) {
             // The project is made either way; filing into the workspace is a bonus that may fail on its own.
             try {
-                Workspace.Filed f = Workspace.file(workspace, brief, saved, board.goal(), lineage, path, Js.utcToday());
+                List<Workspace.Row> rows = Workspace.rows(Workspace.readIndex(workspace));
+                Workspace.Match match = call(board.id(), () -> Workspace.match(io.chat(), modelFor(board, "brief"), brief, saved, rows)).value();
+                Workspace.Filed f = Workspace.file(workspace, brief, saved, board.goal(), lineage, path, Js.utcToday(), match);
                 out.put("workspace", f.path());
                 out.put("workspaceExisted", f.existed());
+                if (match.duplicateOf() != null) out.put("workspaceDuplicateOf", match.duplicateOf());
+                out.put("workspaceRelated", f.related());
             } catch (IOException | RuntimeException e) {
                 out.put("workspaceError", messageOf(e));
             }
@@ -217,7 +221,7 @@ public class Engine {
                     out.put("idea", p.get("idea"));
                     out.put("project", p.get("path"));
                     Map<String, Object> ev = event("project", "ideaId", idea.id(), "path", p.get("path"), "byJudge", true);
-                    for (String k : List.of("workspace", "workspaceExisted", "workspaceError")) if (p.containsKey(k)) ev.put(k, p.get(k));
+                    for (String k : List.of("workspace", "workspaceExisted", "workspaceError", "workspaceDuplicateOf", "workspaceRelated")) if (p.containsKey(k)) ev.put(k, p.get(k));
                     bus.emit(board.id(), ev);
                 } catch (RuntimeException e) {
                     out.put("projectError", messageOf(e));

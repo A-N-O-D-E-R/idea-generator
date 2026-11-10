@@ -220,4 +220,12 @@ export type BoardEvent =
   | { type: 'error'; code: string; message: string; ideaId?: number }
 
 /** Filing into the idea workspace, added to project results when a workspace is set. */
-export type WorkspaceResult = { workspace?: string; workspaceExisted?: boolean; workspaceError?: string }
+export type WorkspaceResult = {
+  workspace?: string
+  workspaceExisted?: boolean
+  workspaceError?: string
+  /** Slug of the existing idea this one duplicates: nothing was filed. */
+  workspaceDuplicateOf?: string
+  /** Existing ideas it was linked to, both ways. */
+  workspaceRelated?: string[]
+}
