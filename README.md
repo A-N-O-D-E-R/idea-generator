@@ -31,3 +31,7 @@ The server listens on 127.0.0.1 only. There is no login and API keys pass throug
 - **Duplicate check before filing.** One call to the board's `brief` model compares the brief with the `INDEX.md` rows.
   A duplicate (same problem, same mechanism) is not filed; the toast names the existing idea. Up to 4 related ideas are linked
   both ways in their `LINK.md`. Slugs the model invents are dropped. An empty index costs no call.
+- **Elo ranking.** The 1–5 rubric saturates among strong ideas, so *Duel* (board overview) compares two of the 8 best judged
+  ideas head to head with the board's judge model, twice with the order swapped; answers that disagree are a draw (against
+  position bias). Elo starts at 1000, K = 32; the fewest-duelled ideas are picked first. Elo is shown, not yet used by evolution.
+  `POST /api/boards/{id}/duel`. Code: `backend/.../Elo.java`.

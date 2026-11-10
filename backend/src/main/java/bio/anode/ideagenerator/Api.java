@@ -187,6 +187,12 @@ public class Api {
                 .body(Markdown.board(board, repo.listIdeas(board.id()), repo.listEdges(board.id()), lang(lang)));
     }
 
+    @PostMapping("/boards/{id:\\d+}/duel")
+    Object duel(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
+        body(raw);
+        return engine.duel(id);
+    }
+
     @PostMapping("/boards/{id:\\d+}/summary")
     Object summary(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         body(raw);

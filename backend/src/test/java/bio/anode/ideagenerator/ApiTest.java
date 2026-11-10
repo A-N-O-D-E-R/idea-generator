@@ -87,6 +87,8 @@ class ApiTest {
                     .collect(Collectors.joining(",")) + "]}";
             case "judgement" -> "{\"reason\":\"Stark mekanism, oklar kund.\",\"originality\":" + judgeScores[0] + ",\"feasibility\":"
                     + judgeScores[1] + ",\"impact\":" + judgeScores[2] + ",\"keywords\":" + Js.stringify(judgeKeywords) + "}";
+            // The idea titled "Vinnare" wins wherever it is shown.
+            case "duel" -> "{\"winner\":\"" + (r.user().indexOf("Vinnare") < r.user().indexOf("Idea B:") ? "A" : "B") + "\",\"reason\":\"Tydligare.\"}";
             case "summary" -> """
                     {"headline":"Tavlan rör sig mot ljud.","themes":[{"name":"Ljud","insight":"Allt låter.","ideas":["Lånecyklar"]}],
                      "strongest":[{"title":"Korsning","why":"Konkret."}],"gaps":["Ingen tänker på natten."],"nextSteps":["Korsa A och B."]}""";
@@ -559,5 +561,29 @@ class ApiTest {
         assertTrue(has(md, "^# Rapport · \\d{4}-\\d{2}-\\d{2}"));
         assertTrue(md.contains("## Slutsatser"));
         assertTrue(has(md, "cd \".*sjungande-bank\" && claude"));
+    }
+
+    @Test
+    @Order(16)
+    void aDuelMovesEloTowardsTheWinnerWhicheverSideItIsShownOn() {
+        long board = id(newBoard());
+        assertEquals("too_few", api("POST", "/api/boards/" + board + "/duel", Map.of()).data().path("code").asString());
+        judgeScores = new int[]{3, 3, 3};
+        long win = id(seed(board, "Vinnare"));
+        long lose = id(seed(board, "Förlorare"));
+        engine.idle();
+        long before = duelCalls();
+        JsonNode d = api("POST", "/api/boards/" + board + "/duel", Map.of()).data();
+        assertEquals(2, duelCalls() - before, "asked twice, order swapped");
+        long a = d.path("a").asLong();
+        assertEquals(a == win ? 1.0 : 0.0, d.path("scoreA").asDouble(), "the same idea wins in both positions");
+        assertEquals(1016.0, repo.getIdea(win).elo(), 1e-9);
+        assertEquals(984.0, repo.getIdea(lose).elo(), 1e-9);
+        assertEquals(1, repo.getIdea(win).duels());
+        assertTrue(api("GET", "/api/boards/" + board).text().contains("\"elo\":1016.0"));
+    }
+
+    static long duelCalls() {
+        return calls.stream().filter(c -> c.schemaName().equals("duel")).count();
     }
 }

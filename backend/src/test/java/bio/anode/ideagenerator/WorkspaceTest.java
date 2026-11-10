@@ -19,7 +19,7 @@ class WorkspaceTest {
 
     static Idea gold() {
         return new Idea(1, 1, "Singing bench", "A park bench that hums.", "expand", null, 0, 0, 5, 4, 5, "Novel.", null, null, 1,
-                null, null, null, null, List.of("sound", "public space"), null);
+                null, null, null, null, List.of("sound", "public space"), null, null, 0);
     }
 
     static Project.Brief brief(String slug) {

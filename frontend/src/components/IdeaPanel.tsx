@@ -11,7 +11,7 @@ import type { Idea } from '@/types'
 import { Grow, RankItem, Seg, Swatch } from './Field'
 import {
   MEDAL_ICON, S, copyText, deleteIdea, emit, expand, fail, focusIdea, graph, ideaList, makeProject, notify, openBoard,
-  openDialog, rejudge, reveal, selectIdea, setMedal, spinoff, summarize, useStore,
+  openDialog, rejudge, reveal, selectIdea, setMedal, spinoff, summarize, duel, useStore,
 } from '@/store'
 
 const H3 = ({ children }: { children: React.ReactNode }) => (
@@ -66,6 +66,7 @@ function ScoreBlock({ idea }: { idea: Idea }) {
           ))
         : null}
       {idea.reason ? <p className="mt-2.5 text-subtle italic">{idea.reason}</p> : null}
+      {idea.elo != null ? <p className="mt-1 text-xs text-muted-foreground tabular-nums">{t('eloLine', { e: Math.round(idea.elo), n: idea.duels })}</p> : null}
     </div>
   )
 }
@@ -168,10 +169,12 @@ function IdeaView({ idea }: { idea: Idea }) {
 function Overview() {
   const { board } = useStore()
   const [thinking, setThinking] = useState(false)
+  const [duelling, setDuelling] = useState(false)
   if (!board) return null
   const ideas = ideaList()
   const stats = evolutionStats(ideas)
   const ranked = ideas.filter((i) => fitness(i) != null).sort((x, y) => fitness(y)! - fitness(x)!).slice(0, 12)
+  const byElo = ideas.filter((i) => i.elo != null).sort((x, y) => y.elo! - x.elo!).slice(0, 8)
   const fmt = (v: number | null) => (v == null ? '–' : v.toFixed(1))
   const s = board.summary
   return (
@@ -220,6 +223,38 @@ function Overview() {
           </>
         ) : null}
       </section>
+      {ranked.length >= 2 ? (
+        <section className="mt-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <H3>{t('eloTitle')}</H3>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={duelling}
+              title={t('duelHint')}
+              onClick={() => {
+                setDuelling(true)
+                duel().catch(fail).finally(() => setDuelling(false))
+              }}
+            >
+              {duelling ? t('thinking') : t('duel')}
+            </Button>
+          </div>
+          {byElo.length ? (
+            <ol className="m-0 grid list-none grid-cols-[minmax(0,1fr)] gap-0.5 p-0">
+              {byElo.map((i) => (
+                <li key={i.id} className="min-w-0">
+                  <RankItem onClick={() => focusIdea(i.id, Math.max(graph?.cam.k ?? 1, 0.9))}>
+                    <Swatch kind={i.kind} />
+                    <Grow>{i.title}</Grow>
+                    <span className="whitespace-nowrap text-subtle tabular-nums">{`${Math.round(i.elo!)} · ${i.duels}`}</span>
+                  </RankItem>
+                </li>
+              ))}
+            </ol>
+          ) : <p className="text-xs text-muted-foreground">{t('duelHint')}</p>}
+        </section>
+      ) : null}
       {ranked.length ? <H3>{t('topIdeas')}</H3> : null}
       <ol className="m-0 grid list-none grid-cols-[minmax(0,1fr)] gap-0.5 p-0">
         {ranked.map((i) => (

@@ -401,6 +401,17 @@ export async function summarize() {
   emit()
 }
 
+/** One Elo duel between two of the best judged ideas; the ideas come back over SSE too. */
+export async function duel() {
+  if (!S.board) return
+  const r = await api<{ ideas: Idea[]; a: number; scoreA: number; reasons: string[] }>('POST', `/api/boards/${S.board.id}/duel`, {})
+  r.ideas.forEach(upsertIdea)
+  const [a, b] = [r.ideas.find((i) => i.id === r.a), r.ideas.find((i) => i.id !== r.a)]
+  const verdict = r.scoreA === 0.5 ? t('duelDraw', { a: a?.title, b: b?.title }) : t('duelWin', { w: (r.scoreA > 0.5 ? a : b)?.title, l: (r.scoreA > 0.5 ? b : a)?.title })
+  notify([verdict, r.reasons[0]].filter(Boolean).join(' '), 'good', 7000)
+  emit()
+}
+
 export function focusIdea(id: number, k: number | null) {
   selectIdea(id)
   graph?.focusOn(id, k)

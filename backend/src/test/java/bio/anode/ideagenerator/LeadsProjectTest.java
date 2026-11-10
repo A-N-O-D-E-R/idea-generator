@@ -60,7 +60,7 @@ class LeadsProjectTest {
             List.of("f1", "f2"), List.of("q"), List.of("r"));
 
     static Idea idea(long id, String title, String pitch, String kind, String originBoardTitle) {
-        return new Idea(id, 1, title, pitch, kind, null, 0, 0, 5, 4, 4, "Bra.", null, null, 0, null, null, null, originBoardTitle, List.of(), "");
+        return new Idea(id, 1, title, pitch, kind, null, 0, 0, 5, 4, 4, "Bra.", null, null, 0, null, null, null, originBoardTitle, List.of(), "", null, 0);
     }
 
     static final Idea IDEA = idea(1, "Bänk", "Sjunger.", "combine", null);

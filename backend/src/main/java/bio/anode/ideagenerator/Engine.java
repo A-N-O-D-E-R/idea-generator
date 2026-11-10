@@ -466,6 +466,20 @@ public class Engine {
         return f == null ? -1 : f;
     }
 
+    /** One Elo duel between two of the board's best judged ideas: {a, b, scoreA, reasons, ideas}. */
+    public Map<String, Object> duel(long boardId) {
+        Board board = mustBoard(boardId);
+        Idea[] pair = Elo.pickPair(repo.listIdeas(board.id()), java.util.concurrent.ThreadLocalRandom.current());
+        if (pair == null) throw new AppError(400, "too_few", "A duel needs at least two judged ideas");
+        Idea a = pair[0], b = pair[1];
+        Elo.Duel d = call(board.id(), () -> Elo.duel(io.chat(), modelFor(board, "judge"), board.goal(), a, b, board.config().judgeGuidance())).value();
+        double[] r = Elo.update(Elo.rating(a), Elo.rating(b), d.scoreA());
+        repo.saveDuel(a.id(), r[0], b.id(), r[1]);
+        List<Idea> both = List.of(repo.getIdea(a.id()), repo.getIdea(b.id()));
+        emitIdeas(board.id(), both);
+        return Js.obj("a", a.id(), "b", b.id(), "scoreA", d.scoreA(), "reasons", d.reasons(), "ideas", both);
+    }
+
     public Map<String, Object> summarize(long boardId) {
         Board board = mustBoard(boardId);
         List<Llm.SummaryIdea> ideas = repo.listIdeas(board.id()).stream()

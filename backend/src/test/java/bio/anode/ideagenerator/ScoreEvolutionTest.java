@@ -33,7 +33,7 @@ class ScoreEvolutionTest {
             i = sum - o - f;
         }
         return new Idea(id, 1, "Idea " + id, "", kind, null, 0, 0, o, f, i, null, null, medalOverride, generation, null, null, null, null,
-                List.of(), "");
+                List.of(), "", null, 0);
     }
 
     static Idea idea(long id, Integer sum) {

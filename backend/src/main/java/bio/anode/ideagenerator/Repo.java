@@ -162,6 +162,10 @@ public class Repo {
         db.sql("PRAGMA foreign_keys = ON").update();
         db.sql("PRAGMA journal_mode = WAL").query().singleValue(); // in-memory databases answer "memory"
         for (String stmt : SCHEMA.split(";\\s*\\n")) if (!stmt.isBlank()) db.sql(stmt).update();
+        // Added after the upstream schema: Elo from pairwise duels. SQLite has no ADD COLUMN IF NOT EXISTS.
+        List<String> cols = db.sql("SELECT name FROM pragma_table_info('ideas')").query(String.class).list();
+        if (!cols.contains("elo")) db.sql("ALTER TABLE ideas ADD COLUMN elo REAL").update();
+        if (!cols.contains("duels")) db.sql("ALTER TABLE ideas ADD COLUMN duels INTEGER NOT NULL DEFAULT 0").update();
         if (count("SELECT COUNT(*) FROM templates") == 0) {
             for (Template t : Board.DEFAULT_TEMPLATES) {
                 db.sql("INSERT INTO templates (name, system, expand, combine, sort) VALUES (?, ?, ?, ?, ?)")
@@ -194,6 +198,11 @@ public class Repo {
         return rs.wasNull() ? null : v;
     }
 
+    private static Double doubleOrNull(ResultSet rs, String col) throws SQLException {
+        double v = rs.getDouble(col);
+        return rs.wasNull() ? null : v;
+    }
+
     private static Long longOrNull(ResultSet rs, String col) throws SQLException {
         long v = rs.getLong(col);
         return rs.wasNull() ? null : v;
@@ -214,7 +223,8 @@ public class Repo {
                 intOrNull(r, "feasibility"), intOrNull(r, "impact"), r.getString("reason"), r.getString("judged_at"),
                 intOrNull(r, "medal_override"), r.getInt("generation"), r.getString("project_path"),
                 longOrNull(r, "origin_idea_id"), longOrNull(r, "origin_board_id"), r.getString("origin_board_title"),
-                kw == null || kw.isEmpty() ? List.of() : Arrays.asList(kw.split("\\|")), r.getString("created_at"));
+                kw == null || kw.isEmpty() ? List.of() : Arrays.asList(kw.split("\\|")), r.getString("created_at"),
+                doubleOrNull(r, "elo"), r.getInt("duels"));
     };
 
     static final RowMapper<Board> BOARD = (r, n) -> {
@@ -341,6 +351,15 @@ public class Repo {
         db.sql("UPDATE ideas SET originality = ?, feasibility = ?, impact = ?, reason = ?, judged_at = datetime('now') WHERE id = ?")
                 .params(j.originality(), j.feasibility(), j.impact(), j.reason(), id).update();
         return getIdea(id);
+    }
+
+    /** Store both sides of a duel at once. */
+    public synchronized void saveDuel(long a, double eloA, long b, double eloB) {
+        inTx(() -> {
+            db.sql("UPDATE ideas SET elo = ?, duels = duels + 1 WHERE id = ?").params(eloA, a).update();
+            db.sql("UPDATE ideas SET elo = ?, duels = duels + 1 WHERE id = ?").params(eloB, b).update();
+            return null;
+        });
     }
 
     public synchronized Idea setKeywords(long id, List<String> keywords) {

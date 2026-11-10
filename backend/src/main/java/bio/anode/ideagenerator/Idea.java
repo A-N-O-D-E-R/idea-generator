@@ -24,7 +24,10 @@ public record Idea(
         Long originBoardId,
         String originBoardTitle,
         List<String> keywords,
-        String createdAt) {
+        String createdAt,
+        /* Elo from pairwise duels (null = never duelled) and how many duels it has had */
+        Double elo,
+        int duels) {
 
     public record Edge(long from, long to) {}
 }

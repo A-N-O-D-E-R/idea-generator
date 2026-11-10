@@ -28,6 +28,9 @@ export type Idea = {
   originBoardTitle: string | null
   keywords: string[]
   createdAt: string
+  /** Elo from pairwise duels; null = never duelled */
+  elo: number | null
+  duels: number
 }
 
 export type Edge = { from: number; to: number }

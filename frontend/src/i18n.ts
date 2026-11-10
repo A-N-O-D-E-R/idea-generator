@@ -52,7 +52,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     // overview
     overview: 'Översikt', topIdeas: 'Topplista', noIdeasYet: 'Tavlan är tom. Skriv ett frö nedan, eller hämta spaning från vänsterpanelen.',
     evolution: 'Evolution', evoLine: 'Generation {g} · snitt {first} → {latest} · bäst {best}', evoShort: 'Generation {g} · bäst {best}',
-    summary: 'Sammanfattning', summarize: 'Sammanfatta tavlan', resummarize: 'Uppdatera', summaryStale: '{n} nya idéer sedan sammanfattningen',
+    eloTitle: 'Elo-ranking', duel: 'Duell', duelHint: 'Två av de bästa idéerna jämförs mot varandra, två gånger med bytt ordning.', duelWin: '{w} slog {l}.', duelDraw: 'Oavgjort: {a} mot {b}.', eloLine: 'Elo {e} · {n} dueller', summary: 'Sammanfattning', summarize: 'Sammanfatta tavlan', resummarize: 'Uppdatera', summaryStale: '{n} nya idéer sedan sammanfattningen',
     themes: 'Teman', strongest: 'Starkast', gaps: 'Luckor', nextSteps: 'Nästa steg',
     // leads
     leadsX: 'X-trender', leadsResearch: 'AI-forskning', refresh: 'Hämta', refreshing: 'Spanar …',
@@ -155,7 +155,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     deleteIdea: 'Delete idea', confirmDelete: 'Delete "{t}"?',
     overview: 'Overview', topIdeas: 'Top ideas', noIdeasYet: 'The board is empty. Write a seed below, or pull leads from the left panel.',
     evolution: 'Evolution', evoLine: 'Generation {g} · mean {first} → {latest} · best {best}', evoShort: 'Generation {g} · best {best}',
-    summary: 'Summary', summarize: 'Summarize the board', resummarize: 'Refresh', summaryStale: '{n} new ideas since the summary',
+    eloTitle: 'Elo ranking', duel: 'Duel', duelHint: 'Two of the best ideas are compared head to head, twice with the order swapped.', duelWin: '{w} beat {l}.', duelDraw: 'Draw: {a} vs {b}.', eloLine: 'Elo {e} · {n} duels', summary: 'Summary', summarize: 'Summarize the board', resummarize: 'Refresh', summaryStale: '{n} new ideas since the summary',
     themes: 'Themes', strongest: 'Strongest', gaps: 'Gaps', nextSteps: 'Next steps',
     leadsX: 'X trends', leadsResearch: 'AI research', refresh: 'Fetch', refreshing: 'Scouting …',
     leadsEmpty: 'Nothing fetched yet. The scouts search from the board\'s goal.', addAsSeed: '+ Seed', onBoard: 'on the board',
