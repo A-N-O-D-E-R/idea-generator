@@ -68,3 +68,22 @@ autopilot (single instance assumed: the autopilot runs in-process).
 - **Storage.** JSON columns are `text` (jsonb would reorder keys) and timestamps stay UTC text, so every JSON shape is as
   before. Spend has a `tenant_id` (board 0 = the tenant's report synthesis). `Repo` keeps one global lock (single instance).
 - **Sessions**: 7 days idle, no absolute timeout and no re-authentication for sensitive actions (there are none beyond settings).
+
+## Security review fixes (2026-11-10)
+
+An independent review of the branch found these; all fixed, with tests in `SharedServerGuardsTest` and `OauthTest`:
+
+- **SSRF through DNS rebinding on retries** (medium): the public-address check now runs on every outgoing request of the
+  shared-server client, retries included (`Providers.send`), the AI Scientist call goes through the same path, and the JVM
+  DNS cache is pinned to 30 s so check and connect agree. Residual: the HTTP client resolves again right after the check;
+  **for a public deployment add an egress firewall that drops private ranges** (169.254.0.0/16, 10/8, 172.16/12, 192.168/16, 127/8, fc00::/7).
+- **Unbounded response bodies** (medium): every provider / AI Scientist response is capped at 4 MB (`Providers.capped`).
+- **Event stream outliving logout** (low): streams end after 30 min; the browser reconnects (session and ownership are
+  checked again) and re-syncs the board.
+- **IPv6 forms carrying IPv4** (low): NAT64 (64:ff9b::/96 judged by the embedded address, 64:ff9b:1::/48 refused),
+  6to4 (2002::/16 judged by the embedded address) and Teredo (2001::/32, refused).
+- **Open sign-up / no disk quota** (low): `ideagen.allowed-logins` (`IDEAGEN_ALLOWED_LOGINS`) limits sign-in to listed
+  stable ids; a refused sign-in logs the id to add. Empty keeps open sign-up, with a startup warning. Disk quotas remain out of scope.
+
+Also fixed: an unconfigured provider no longer has a login route (it redirected with `client_id=unset`), and on a shared
+server `projectPath` holds only the folder name, so no server path reaches the JSON, Markdown or report.

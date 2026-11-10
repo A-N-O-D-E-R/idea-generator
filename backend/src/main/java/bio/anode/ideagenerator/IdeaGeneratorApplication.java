@@ -20,6 +20,10 @@ import org.springframework.context.event.EventListener;
 public class IdeaGeneratorApplication {
 
     public static void main(String[] args) throws Exception {
+        // Pin the DNS cache so a shared server's address check (Providers.requirePublic) and the connect right after it
+        // see the same answer; short enough that real DNS changes still land.
+        java.security.Security.setProperty("networkaddress.cache.ttl", "30");
+        java.security.Security.setProperty("networkaddress.cache.negative.ttl", "10");
         for (String a : args) {
             if (a.startsWith("--generate-keyset=")) {
                 Path file = Path.of(a.substring("--generate-keyset=".length()));

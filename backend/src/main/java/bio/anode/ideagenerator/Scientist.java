@@ -8,6 +8,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -43,21 +44,23 @@ public final class Scientist {
     }
 
     public static Job submit(String baseUrl, String key, Idea idea, String goal) {
+        return submit(baseUrl, key, idea, goal, false);
+    }
+
+    /** shared: a shared server's no-redirect client, which re-checks the address on every request. */
+    public static Job submit(String baseUrl, String key, Idea idea, String goal, boolean shared) {
         String body = Js.stringify(Js.obj("topic", topic(idea, goal), "maxGenerations", MAX_GENERATIONS, "budgetUsd", BUDGET_USD));
-        HttpRequest req = HttpRequest.newBuilder(URI.create(baseUrl + "/v1/ideations"))
+        HttpRequest.Builder req = HttpRequest.newBuilder(URI.create(baseUrl + "/v1/ideations"))
                 .timeout(Duration.ofSeconds(30))
-                .header("Authorization", "Bearer " + key)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body)).build();
+                .POST(HttpRequest.BodyPublishers.ofString(body));
         HttpResponse<String> res;
         try {
-            res = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
+            res = Providers.send(shared ? Providers.HTTP_NO_REDIRECT : HTTP, req,
+                    Map.of("Authorization", "Bearer " + key, "Content-Type", "application/json", "Accept", "application/json"));
         } catch (IOException e) {
             throw new AppError(502, "scientist_unreachable", "AI Scientist is not reachable at " + baseUrl + ": " + e.getMessage());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new AppError(502, "scientist_unreachable", "Interrupted");
+        } catch (Providers.ProviderError e) {
+            throw new AppError(400, e.code, e.getMessage());
         }
         JsonNode v;
         try {

@@ -184,17 +184,29 @@ public class Engine {
         bus.emit(boardId, event("judging", "ids", ids, "on", on));
     }
 
+    /**
+     * The idea's project folder, or null. On a shared server projectPath holds only the folder name, inside the tenant's
+     * projects folder, so no server path reaches the JSON (getFileName also strips anything that tries to climb out).
+     */
+    static Path projectFolder(AppSettings s, Idea idea) {
+        if (idea.projectPath() == null || idea.projectPath().isEmpty()) return null;
+        Path p = Path.of(idea.projectPath());
+        return s.shared() ? Path.of(s.projectsRoot()).resolve(p.getFileName().toString()) : p;
+    }
+
     private Map<String, Object> createProject(String t, Idea idea) {
-        if (idea.projectPath() != null && !idea.projectPath().isEmpty() && Files.exists(Path.of(idea.projectPath()))) {
+        Board board = mustBoard(t, idea.boardId());
+        Path existing = projectFolder(settings(board), idea);
+        if (existing != null && Files.exists(existing)) {
             return Js.obj("idea", idea, "path", idea.projectPath(), "existed", true);
         }
-        Board board = mustBoard(t, idea.boardId());
         List<Idea> lineage = repo.lineage(t, idea.id());
         String lang = board.config().lang();
         Project.Brief brief = call(board, () -> Project.writeBrief(chat(board), modelFor(board, "brief"), idea, board.goal(), lineage, lang)).value();
         String path;
         try {
             path = Project.writeProject(settings(board).projectsRoot(), brief, idea, board.goal(), lineage, lang, io.gitInit());
+            if (settings(board).shared()) path = Path.of(path).getFileName().toString();
         } catch (Exception e) {
             throw new AppError(500, "project_failed", messageOf(e));
         }
@@ -418,12 +430,11 @@ public class Engine {
     /** The idea's project folder, for the zip download; on a shared server only inside the tenant's projects folder. */
     public Path projectDir(String t, long ideaId) {
         Idea idea = mustIdea(t, ideaId);
-        if (idea.projectPath() == null || idea.projectPath().isEmpty() || !Files.isDirectory(Path.of(idea.projectPath()))) {
-            throw new AppError(404, "no_project", "This idea has no project folder");
-        }
         AppSettings s = settings(mustBoard(t, idea.boardId()));
+        Path folder = projectFolder(s, idea);
+        if (folder == null || !Files.isDirectory(folder)) throw new AppError(404, "no_project", "This idea has no project folder");
         try {
-            Path dir = Path.of(idea.projectPath()).toRealPath();
+            Path dir = folder.toRealPath();
             if (s.shared() && !dir.startsWith(Path.of(s.projectsRoot()).toRealPath())) throw new AppError(404, "no_project", "This idea has no project folder");
             return dir;
         } catch (IOException e) {
@@ -498,7 +509,7 @@ public class Engine {
                 throw new AppError(400, e.code, AppError.messageOf(e));
             }
         }
-        return Js.obj("job", Scientist.submit(s.scientistUrl(), key, idea, board.goal()));
+        return Js.obj("job", Scientist.submit(s.scientistUrl(), key, idea, board.goal(), s.shared()));
     }
 
     public Map<String, Object> spinoff(String t, long ideaId) {

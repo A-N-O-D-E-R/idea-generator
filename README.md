@@ -67,3 +67,10 @@ browser. Keys left in `localStorage` by an older version are handed over once an
   `perso/ai-scientist`, stored encrypted like the provider keys; env fallback `AI_SCIENTIST_API_KEY` in `none` mode only), the idea panel gets *To AI Scientist*:
   it submits `POST /v1/ideations` with a topic built from the idea (Title, Keywords, TL;DR, Abstract; no LLM call here),
   `maxGenerations` 3 and a $2 budget on the ai-scientist account. Experiment runs are started there. Code: `Scientist.java`.
+
+## Modes
+
+- `ideagen.auth=none` (default): just you, no login, loopback only. Postgres via `backend/compose.yaml` (Docker) on `pnpm backend`.
+- `ideagen.auth=oauth`: GitHub/Google login, one tenant per person, keys encrypted with Tink. See `docs/MULTI-USER.md`
+  for setup (`--generate-keyset`, `IDEAGEN_KEYSET_FILE`, `IDEAGEN_ALLOWED_LOGINS`, OAuth app callbacks) and the
+  security notes (put an egress firewall in front of a public deployment).

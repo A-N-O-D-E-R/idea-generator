@@ -152,6 +152,8 @@ class OauthTest {
         json(body(post("/api/boards"), Map.of()).with(csrf()), 401);
         call(get("/js/probe.js"), 200);
         assertEquals(302, mvc.perform(get("/oauth2/authorization/github")).andReturn().getResponse().getStatus(), "login starts at GitHub");
+        String google = mvc.perform(get("/oauth2/authorization/google")).andReturn().getResponse().getRedirectedUrl();
+        assertTrue(google == null || !google.contains("accounts.google.com"), "an unconfigured provider has no login route: " + google);
     }
 
     @Test
@@ -274,7 +276,9 @@ class OauthTest {
             scores = new int[]{3, 3, 3};
         }
         String path = repo.getIdea(a, gold).projectPath();
-        assertTrue(path.startsWith(dataDir.resolve("tenants").resolve(a).resolve("projects").toString()), path);
+        assertEquals("guldet", path, "only the folder name: no server path in the JSON");
+        assertTrue(Files.isDirectory(dataDir.resolve("tenants").resolve(a).resolve("projects").resolve(path)));
+        assertFalse(call(get("/api/boards/" + board).with(as(a)), 200).getContentAsString().contains(dataDir.toString()), "no server path anywhere");
         assertFalse(Files.exists(Path.of("/tmp/ws/INDEX.md")), "no workspace filing");
         assertTrue(calls.stream().noneMatch(c -> c.schemaName().equals("workspace_match")));
 

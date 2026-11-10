@@ -1,5 +1,9 @@
 package bio.anode.ideagenerator;
 
+import java.util.Set;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -59,7 +63,8 @@ public class Security {
     private static final Set<String> LOOPBACK_HOSTS = Set.of("localhost", "127.0.0.1", "[::1]", "::1");
 
     @Bean
-    SecurityFilterChain chain(HttpSecurity http, IdeaGeneratorApplication.Mode mode, Repo repo, ClientRegistrationRepository registrations) throws Exception {
+    SecurityFilterChain chain(HttpSecurity http, IdeaGeneratorApplication.Mode mode, Repo repo, ClientRegistrationRepository registrations,
+                              @org.springframework.beans.factory.annotation.Value("${ideagen.allowed-logins:}") String allowedLogins) throws Exception {
         var api = PathPatternRequestMatcher.withDefaults().matcher("/api/**");
         List<String> logins = configured(registrations);
         http.csrf(c -> c.spa())
@@ -77,11 +82,27 @@ public class Security {
         if (logins.isEmpty()) {
             throw new IllegalStateException("ideagen.auth=oauth needs GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET or GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET");
         }
+        Set<String> allowed = allowed(allowedLogins);
+        if (allowed.isEmpty()) LOG.warn("ideagen.allowed-logins is empty: anyone with a {} account can sign up", logins);
+        // Only configured providers get a login route (an "unset" one would redirect with client_id=unset).
+        var defaults = new DefaultOAuth2AuthorizationRequestResolver(registrations, "/oauth2/authorization");
+        OAuth2AuthorizationRequestResolver onlyConfigured = new OAuth2AuthorizationRequestResolver() {
+            public OAuth2AuthorizationRequest resolve(jakarta.servlet.http.HttpServletRequest req) {
+                String uri = req.getRequestURI();
+                String id = uri.substring(uri.lastIndexOf('/') + 1);
+                return uri.startsWith(req.getContextPath() + "/oauth2/authorization/") && !logins.contains(id) ? null : defaults.resolve(req);
+            }
+
+            public OAuth2AuthorizationRequest resolve(jakarta.servlet.http.HttpServletRequest req, String id) {
+                return logins.contains(id) ? defaults.resolve(req, id) : null;
+            }
+        };
         return http.authorizeHttpRequests(a -> a.requestMatchers(api).authenticated().anyRequest().permitAll())
                 .oauth2Login(o -> o.loginPage("/")
+                        .authorizationEndpoint(e -> e.authorizationRequestResolver(onlyConfigured))
                         .defaultSuccessUrl("/", true)
                         .failureUrl("/?signin=failed")
-                        .userInfoEndpoint(u -> u.userService(github(repo)).oidcUserService(google(repo))))
+                        .userInfoEndpoint(u -> u.userService(github(repo, allowed)).oidcUserService(google(repo, allowed))))
                 .logout(l -> l.logoutUrl("/api/logout").logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
                 .build();
     }
@@ -126,20 +147,37 @@ public class Security {
         };
     }
 
-    private static OAuth2UserService<OAuth2UserRequest, OAuth2User> github(Repo repo) {
+    static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(Security.class);
+
+    /** "github:<numeric id>,google:<sub>": stable ids, not logins or emails (a GitHub login can be renamed and re-taken). */
+    static Set<String> allowed(String csv) {
+        return java.util.Arrays.stream(csv.split("[,\\s]+")).map(String::trim).filter(x -> !x.isEmpty()).collect(java.util.stream.Collectors.toSet());
+    }
+
+    /** Refuse before any tenant is created; the log line tells the operator which id to add. */
+    static void checkAllowed(Set<String> allowed, String provider, String subject) {
+        if (allowed.isEmpty() || allowed.contains(provider + ":" + subject)) return;
+        LOG.warn("Sign-in refused for {}:{} (not in ideagen.allowed-logins)", provider, subject);
+        throw new org.springframework.security.oauth2.core.OAuth2AuthenticationException(
+                new org.springframework.security.oauth2.core.OAuth2Error("not_allowed"), "This account is not allowed on this server");
+    }
+
+    private static OAuth2UserService<OAuth2UserRequest, OAuth2User> github(Repo repo, Set<String> allowed) {
         var delegate = new DefaultOAuth2UserService();
         return req -> {
             OAuth2User user = delegate.loadUser(req);
+            checkAllowed(allowed, "github", String.valueOf(user.<Object>getAttribute("id")));
             String login = String.valueOf(user.<Object>getAttribute("login"));
             String email = user.getAttribute("email") instanceof String e ? e : null; // public profile email, display only
             return new TenantUser(repo.login("github", String.valueOf(user.<Object>getAttribute("id")), login, email), login, user);
         };
     }
 
-    private static OAuth2UserService<OidcUserRequest, OidcUser> google(Repo repo) {
+    private static OAuth2UserService<OidcUserRequest, OidcUser> google(Repo repo, Set<String> allowed) {
         var delegate = new OidcUserService();
         return req -> {
             OidcUser user = delegate.loadUser(req);
+            checkAllowed(allowed, req.getClientRegistration().getRegistrationId(), user.getSubject());
             String email = Boolean.TRUE.equals(user.getEmailVerified()) ? user.getEmail() : null;
             String name = user.getFullName() != null ? user.getFullName() : email != null ? email : "Google user";
             return new TenantUser(repo.login(req.getClientRegistration().getRegistrationId(), user.getSubject(), name, email), name, user);

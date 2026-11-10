@@ -184,7 +184,27 @@ export async function openBoard(id: number) {
   S.selected = null
   localStorage.setItem('ideagen.board', String(id))
   graph?.setData(data.ideas, data.edges, data.judging)
-  S.stopFollow = follow(id, onEvent)
+  // The server ends a stream after 30 min and EventSource reconnects; any later hello means events may have been
+  // missed in between, so catch up from the board.
+  let hellos = 0
+  S.stopFollow = follow(id, (e) => {
+    if (e.type === 'hello' && hellos++ > 0) resync(id).catch(fail)
+    onEvent(e)
+  })
+  emit()
+}
+
+async function resync(id: number) {
+  const data = await api<BoardData>('GET', `/api/boards/${id}`)
+  if (S.board?.id !== id) return
+  S.board = data.board
+  S.ideas = new Map(data.ideas.map((i) => [i.id, i]))
+  S.edges = data.edges
+  S.leads = data.leads
+  S.judging = new Set(data.judging)
+  S.spentToday = data.spentToday
+  if (S.selected != null && !S.ideas.has(S.selected)) S.selected = null
+  graph?.setData(data.ideas, data.edges, data.judging)
   emit()
 }
 

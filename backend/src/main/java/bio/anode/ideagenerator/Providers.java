@@ -215,7 +215,10 @@ public final class Providers {
     /**
      * On a shared server, user-given URLs (provider base URLs, the AI Scientist, links to seed from) must not reach
      * the server's own network: only http(s) to hosts whose every address is public.
-     * ponytail: checked at resolve time; DNS rebinding between this check and the connect is not covered.
+     * Checked on every request (retries included, see {@link #send}), with the JVM's DNS cache pinned to 30 s
+     * (IdeaGeneratorApplication.main) so the check and the connect see the same answer.
+     * ponytail: a name re-resolved inside the HTTP client right after the check could still differ; an egress
+     * firewall that drops private ranges is the real fix for a public deployment.
      */
     public static void requirePublic(String url) {
         URI u;
@@ -246,7 +249,23 @@ public final class Providers {
             int x = b[0] & 0xff, y = b[1] & 0xff;
             return x == 0 || (x == 100 && y >= 64 && y < 128) || (x == 198 && (y == 18 || y == 19)) || x >= 240;
         }
-        return (b[0] & 0xfe) == 0xfc; // IPv6 unique local fc00::/7
+        if ((b[0] & 0xfe) == 0xfc) return true; // IPv6 unique local fc00::/7
+        // IPv6 forms that carry an IPv4 address: judge the embedded one.
+        boolean nat64 = b[0] == 0x00 && b[1] == 0x64 && (b[2] & 0xff) == 0xff && (b[3] & 0xff) == 0x9b;
+        if (nat64 && b[4] == 0x00 && b[5] == 0x01) return true; // local-use NAT64 64:ff9b:1::/48
+        if (nat64 && java.util.Arrays.equals(b, 4, 12, new byte[8], 0, 8)) return isPrivate4(b[12], b[13], b[14], b[15]); // 64:ff9b::/96
+        if (nat64) return true; // other 64:ff9b:: forms: not public unicast
+        if ((b[0] & 0xff) == 0x20 && b[1] == 0x02) return isPrivate4(b[2], b[3], b[4], b[5]); // 6to4 2002::/16
+        // Teredo 2001::/32 hides the address; refuse it outright.
+        return (b[0] & 0xff) == 0x20 && b[1] == 0x01 && b[2] == 0x00 && b[3] == 0x00;
+    }
+
+    static boolean isPrivate4(byte a, byte b, byte c, byte d) {
+        try {
+            return isPrivate(java.net.InetAddress.getByAddress(new byte[]{a, b, c, d}));
+        } catch (java.net.UnknownHostException e) {
+            return true;
+        }
     }
 
     // Anthropic first-party prices (USD per million tokens), for the budget limiter.
@@ -297,14 +316,63 @@ public final class Providers {
         return send(HTTP, req, headers);
     }
 
+    /** Largest response body read from any provider (a hostile endpoint could stream gigabytes into the JVM). */
+    static final int MAX_BODY = 4 << 20;
+
+    /**
+     * Every outgoing call goes through here. The no-redirect client is the shared-server one: its target is
+     * checked again on every request, retries included, so a DNS answer that flips to a private address is caught.
+     */
     static HttpResponse<String> send(HttpClient client, HttpRequest.Builder req, Map<String, String> headers) throws IOException {
         headers.forEach(req::header);
+        HttpRequest built = req.build();
+        if (client == HTTP_NO_REDIRECT) requirePublic(built.uri().toString());
         try {
-            return client.send(req.build(), HttpResponse.BodyHandlers.ofString());
+            return client.send(built, capped(MAX_BODY));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("interrupted", e);
         }
+    }
+
+    /** Like BodyHandlers.ofString() (UTF-8), but fails once the body passes max bytes instead of buffering it all. */
+    static HttpResponse.BodyHandler<String> capped(int max) {
+        return info -> new HttpResponse.BodySubscriber<>() {
+            final java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+            final java.util.concurrent.CompletableFuture<String> body = new java.util.concurrent.CompletableFuture<>();
+            java.util.concurrent.Flow.Subscription sub;
+
+            public java.util.concurrent.CompletionStage<String> getBody() {
+                return body;
+            }
+
+            public void onSubscribe(java.util.concurrent.Flow.Subscription s) {
+                sub = s;
+                s.request(Long.MAX_VALUE);
+            }
+
+            public void onNext(List<java.nio.ByteBuffer> items) {
+                if (body.isDone()) return;
+                for (java.nio.ByteBuffer b : items) {
+                    if (buf.size() + b.remaining() > max) {
+                        sub.cancel();
+                        body.completeExceptionally(new IOException("response larger than " + (max >> 20) + " MB"));
+                        return;
+                    }
+                    byte[] chunk = new byte[b.remaining()];
+                    b.get(chunk);
+                    buf.writeBytes(chunk);
+                }
+            }
+
+            public void onError(Throwable t) {
+                body.completeExceptionally(t);
+            }
+
+            public void onComplete() {
+                body.complete(buf.toString(java.nio.charset.StandardCharsets.UTF_8));
+            }
+        };
     }
 
     static HttpResponse<String> post(AppSettings s, String url, Map<String, String> headers, JsonNode body, Duration timeout) throws IOException {

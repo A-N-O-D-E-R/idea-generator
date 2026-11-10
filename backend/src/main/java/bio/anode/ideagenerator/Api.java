@@ -237,11 +237,15 @@ public class Api {
         return engine.summarize(tenant(), id);
     }
 
+    static final long STREAM_MS = 30 * 60_000L;
+
     /** Server-sent events: everything that happens on one board, live. */
     @GetMapping("/boards/{id:\\d+}/events")
     ResponseEntity<?> events(@PathVariable long id) {
         if (repo.getBoard(tenant(), id) == null) return ResponseEntity.status(404).body(Map.of("error", "Board not found"));
-        ResponseBodyEmitter emitter = new ResponseBodyEmitter(0L); // 0 = never time out
+        // Ends after 30 min and the browser's EventSource reconnects: the ownership check and (oauth) the session are
+        // checked again, so a stream does not outlive a logout or an expired session for long.
+        ResponseBodyEmitter emitter = new ResponseBodyEmitter(STREAM_MS);
         var sub = new Object() {
             volatile Runnable off;
             volatile ScheduledFuture<?> ping;
@@ -265,7 +269,10 @@ public class Api {
             }
         };
         emitter.onCompletion(sub::cleanup);
-        emitter.onTimeout(sub::cleanup);
+        emitter.onTimeout(() -> {
+            sub.cleanup();
+            emitter.complete();
+        });
         emitter.onError(t -> sub.cleanup());
         sub.write(Engine.event("hello", "autopilot", autopilot.status(id)));
         sub.off = engine.bus.on(id, sub::write);

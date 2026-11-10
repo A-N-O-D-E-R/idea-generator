@@ -37,3 +37,6 @@ ideagen:
   keyset-file: ${IDEAGEN_KEYSET_FILE:}
   # auth=oauth: projects of each tenant go to <data-dir>/tenants/<id>/projects (downloadable as zip).
   data-dir: ${IDEAGEN_DATA_DIR:data}
+  # auth=oauth: who may sign in, as stable ids "github:<numeric id>,google:<sub>" (a refused sign-in logs its id).
+  # Empty = open sign-up (logged as a warning at startup).
+  allowed-logins: ${IDEAGEN_ALLOWED_LOGINS:}
