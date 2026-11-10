@@ -17,10 +17,17 @@ Environment variables:
   `idea-generator_ideagen-pg` volume) through `spring-boot-docker-compose`. Anywhere else (`java -jar`), set
   `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD`. Flyway owns the schema
   (`src/main/resources/db/migration`).
-- Provider keys as a fallback for the keys the browser pushes: `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, `CUSTOM_API_KEY`.
+- `IDEAGEN_KEYSET_FILE`: the Tink keyset that encrypts stored API keys. Create one with
+  `java -jar target/idea-generator-0.1.0.jar --generate-keyset=<file>` (written owner-only, never overwritten). Without
+  it, an ephemeral keyset is used and a warning is logged: stored keys are lost on restart.
+- Provider keys as a fallback for the keys stored in the settings: `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, `CUSTOM_API_KEY`.
 - `ANTHROPIC_BASE_URL`, read the way the SDK reads it.
 
-App settings (keys, base URLs, models per role) come from the browser through `PUT /api/runtime-settings`. They are kept in memory only.
+App settings (keys, base URLs, models per role, folders, budget) are stored per tenant: `GET /api/settings` and
+`PUT /api/settings`. Plain settings are JSON in `tenant_settings`; the provider keys and the AI Scientist key are
+encrypted with Tink AEAD (AES256-GCM, associated data `tenant:name`) in `tenant_secrets`. A secret is never sent back:
+the API answers `{"stored": true|false}`. In a `PUT`, a secret string sets it, `""` deletes it, and anything else keeps it.
+With `ideagen.auth=none` the server refuses to start unless `server.address` is a loopback address.
 
 When `../frontend/dist/` exists, the backend serves it as static files.
 
@@ -57,7 +64,8 @@ Keys come from the environment. Re-run it whenever the judge's prompt, schema or
 | `Leads`, `Project`, `Extract` | same names | The X and research scouts, the Claude Code project folders, and link extraction |
 | `Score`, `Evolution` | `public/js/score.js`, `evolve.js` | Pure ports |
 | `Js` | – | JSON (Jackson 3) plus the JS coercions upstream relies on (`String()`, `Number()`, `trim`, `slice`) |
-| `RuntimeSettings`, `IdeaGeneratorApplication` | `index.ts` | In-memory settings and wiring |
+| `Settings`, `Secrets` | – | Per-tenant settings in Postgres; Tink AEAD for the keys |
+| `IdeaGeneratorApplication` | `index.ts` | Wiring, `ideagen.auth` mode, `--generate-keyset` |
 | `CalibrateJudge` | `tools/calibrate-judge.ts` | The calibration tool |
 
 ## Port notes

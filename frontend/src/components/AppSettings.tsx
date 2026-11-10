@@ -1,5 +1,5 @@
 // App settings: API keys, provider addresses, models per role, projects folder, global budget.
-// Stored in localStorage and pushed to the server (PUT /api/runtime-settings).
+// Stored on the server (GET/PUT /api/settings). Keys only go in: the server answers {stored} for them.
 
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/api'
 import { errorText, t } from '@/i18n'
 import { DEFAULTS, PROVIDER_IDS, ROLES, saveSettings } from '@/settings'
-import type { AppSettings as Settings, ProviderId } from '@/types'
+import type { AppSettings as Settings, ProviderId, SettingsUpdate } from '@/types'
 import { Dlg, Field, Fieldset } from './Field'
 import { S, emit, fail, notify, openDialog, useStore, warnMissingKeys } from '@/store'
 
@@ -34,18 +34,24 @@ export function ModelList() {
 export function AppSettings() {
   const { settings, providers } = useStore()
   const [s, setS] = useState<Settings>(() => structuredClone(settings))
+  // New key values typed here ('scientist' = the AI Scientist key); empty = keep the stored one.
+  const [typed, setTyped] = useState<Record<string, string>>({})
+  const [drop, setDrop] = useState<Set<string>>(new Set())
   const [budget, setBudget] = useState(String(settings.maxUsdPerDay))
   const [results, setResults] = useState<Partial<Record<ProviderId, string>>>({})
   const status = new Map((providers?.providers ?? []).map((p) => [p.id, p]))
   const spend = providers ? t('spend', { today: providers.spentToday.toFixed(3), total: providers.spentTotal.usd.toFixed(3) }) : ''
 
+  /** A typed value sets the secret, a removed one is sent as '' (delete), anything else is left out (keep). */
+  const secret = (name: string) => (drop.has(name) ? '' : (typed[name] ?? '').trim() || undefined)
+
   async function saveFromForm(close = true) {
-    const out: Settings = structuredClone(s)
+    const { keys: _stored, scientistKey: _scientist, ...plain } = structuredClone(s)
+    const out: SettingsUpdate = { ...plain, keys: {} }
     for (const p of PROVIDER_IDS) {
       if (HAS_KEY.includes(p)) {
-        const k = (out.keys[p] ?? '').trim()
-        if (k) out.keys[p] = k
-        else delete out.keys[p]
+        const k = secret(p)
+        if (k !== undefined) out.keys![p] = k
       }
       if (HAS_URL.includes(p)) out.baseUrls[p] = (out.baseUrls[p] ?? '').trim()
     }
@@ -53,11 +59,16 @@ export function AppSettings() {
     out.projectsRoot = out.projectsRoot.trim() || DEFAULTS.projectsRoot
     out.workspaceRoot = out.workspaceRoot.trim()
     out.scientistUrl = out.scientistUrl.trim().replace(/\/+$/, '')
-    out.scientistKey = out.scientistKey.trim()
+    const sk = secret('scientist')
+    if (sk !== undefined) out.scientistKey = sk
     out.reposRoots = out.reposRoots.trim()
     out.maxUsdPerDay = Number(budget)
-    S.settings = out
-    S.providers = await saveSettings(out)
+    const res = await saveSettings(out)
+    S.providers = res
+    S.settings = res.settings
+    setS((cur) => ({ ...cur, keys: res.settings.keys, scientistKey: res.settings.scientistKey }))
+    setTyped({})
+    setDrop(new Set())
     emit()
     if (close) {
       openDialog(null)
@@ -108,14 +119,7 @@ export function AppSettings() {
               {st?.note ? <small className="text-muted-foreground">{st.note}</small> : null}
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 {HAS_KEY.includes(p) ? (
-                  <Input
-                    type="password"
-                    autoComplete="off"
-                    className="w-auto min-w-45 flex-1"
-                    placeholder={t('apiKey')}
-                    value={s.keys[p] ?? ''}
-                    onChange={(e) => setS({ ...s, keys: { ...s.keys, [p]: e.target.value } })}
-                  />
+                  <KeyInput name={p} stored={!!s.keys[p]?.stored} typed={typed} setTyped={setTyped} drop={drop} setDrop={setDrop} />
                 ) : null}
                 {HAS_URL.includes(p) ? (
                   <Input
@@ -164,7 +168,9 @@ export function AppSettings() {
           <Input value={s.scientistUrl} placeholder="http://localhost:8080" onChange={(e) => setS({ ...s, scientistUrl: e.target.value })} />
         </Field>
         <Field label={t('apiKey')}>
-          <Input type="password" autoComplete="off" placeholder="ais_…" value={s.scientistKey} onChange={(e) => setS({ ...s, scientistKey: e.target.value })} />
+          <div className="flex flex-wrap items-center gap-2">
+            <KeyInput name="scientist" stored={s.scientistKey.stored} placeholder="ais_…" typed={typed} setTyped={setTyped} drop={drop} setDrop={setDrop} />
+          </div>
         </Field>
       </Fieldset>
       <Fieldset legend={t('autopilot')}>
@@ -173,5 +179,38 @@ export function AppSettings() {
         </Field>
       </Fieldset>
     </Dlg>
+  )
+}
+
+/** A write-only key field: shows whether a key is stored, never its value. */
+function KeyInput(props: {
+  name: string
+  stored: boolean
+  placeholder?: string
+  typed: Record<string, string>
+  setTyped: (f: (t: Record<string, string>) => Record<string, string>) => void
+  drop: Set<string>
+  setDrop: (d: Set<string>) => void
+}) {
+  const { name, stored, typed, setTyped, drop, setDrop } = props
+  const dropped = drop.has(name)
+  return (
+    <>
+      <Input
+        type="password"
+        autoComplete="off"
+        className="w-auto min-w-45 flex-1"
+        placeholder={dropped ? t('keyRemoved') : stored ? t('keyStored') : (props.placeholder ?? t('apiKey'))}
+        value={typed[name] ?? ''}
+        onChange={(e) => {
+          const v = e.target.value
+          setTyped((cur) => ({ ...cur, [name]: v }))
+          if (dropped) setDrop(new Set([...drop].filter((x) => x !== name)))
+        }}
+      />
+      {stored && !dropped ? (
+        <Button variant="ghost" size="sm" onClick={() => setDrop(new Set([...drop, name]))}>{t('removeKey')}</Button>
+      ) : null}
+    </>
   )
 }

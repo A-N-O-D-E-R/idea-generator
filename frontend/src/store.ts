@@ -7,7 +7,7 @@ import { api, download, follow } from './api'
 import { errorText, getLang, t } from './i18n'
 import type { Graph } from './lib/graph'
 import { medal } from './lib/score'
-import { loadSettings, providersInUse, pushSettings } from './settings'
+import { DEFAULTS, loadSettings, providersInUse } from './settings'
 import type {
   AppSettings, AutopilotStatus, Board, BoardData, BoardEvent, Edge, Idea, Lead, LeadSource,
   ProvidersResponse, Spinoff, Template, WorkspaceResult,
@@ -37,7 +37,7 @@ export const S = {
   hover: null as number | null,
   templates: [] as Template[],
   providers: null as ProvidersResponse | null,
-  settings: loadSettings() as AppSettings,
+  settings: DEFAULTS as AppSettings,
   stopFollow: null as (() => void) | null,
   createAt: null as { x: number; y: number } | null,
   leadsOpen: false,
@@ -189,8 +189,6 @@ function onEvent(e: BoardEvent) {
   switch (e.type) {
     case 'hello':
       S.autopilot = e.autopilot
-      // The server restarted and lost the settings it only keeps in memory: hand them over again.
-      if (!e.settingsReceived) pushSettings(S.settings).then((p) => { S.providers = p; emit() }).catch(fail)
       break
     case 'ideas':
       for (const idea of e.ideas) {
@@ -513,7 +511,10 @@ export async function main() {
   // ?debug exposes the canvas for scripted demos and tests (node positions, camera).
   if (new URLSearchParams(location.search).has('debug')) (window as unknown as Record<string, unknown>).ideagen = { graph: () => graph, state: () => S }
   try {
-    S.providers = await pushSettings(S.settings)
+    const res = await loadSettings()
+    S.providers = res
+    S.settings = res.settings
+    emit()
     warnMissingKeys()
   } catch (e) {
     fail(e)

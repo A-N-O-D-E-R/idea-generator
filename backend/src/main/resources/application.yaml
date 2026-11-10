@@ -12,3 +12,9 @@ spring:
   threads.virtual.enabled: true
   # A built frontend (../frontend/dist) is served as static files when present.
   web.resources.static-locations: file:../frontend/dist/,classpath:/static/
+ideagen:
+  # none: one local tenant, no login, loopback only. oauth: GitHub/Google login, one tenant per person.
+  auth: ${IDEAGEN_AUTH:none}
+  # Tink keyset (JSON) that encrypts stored API keys; create with --generate-keyset=<file>.
+  # Empty: an ephemeral keyset (auth=none only), so stored keys are lost on restart.
+  keyset-file: ${IDEAGEN_KEYSET_FILE:}

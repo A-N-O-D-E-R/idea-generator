@@ -1,11 +1,11 @@
-// App settings live in this browser (localStorage): API keys, provider
-// addresses, the model for each role, the projects folder, the global budget.
-// They are pushed to the local server, which holds them in memory only.
+// App settings live on the server, per account: API keys (encrypted there, never sent back),
+// provider addresses, the model for each role, the projects folder, the global budget.
 
 import { api } from './api'
-import type { AppSettings, ProviderId, ProvidersResponse, Role } from './types'
+import type { AppSettings, ProviderId, Role, SettingsResponse, SettingsUpdate } from './types'
 
-const KEY = 'ideagen.settings.v1'
+/** Where settings (keys included) lived before they moved to the server. */
+const LEGACY_KEY = 'ideagen.settings.v1'
 export const ROLES: Role[] = ['distill', 'expand', 'combine', 'judge', 'summary', 'research', 'x', 'brief']
 export const PROVIDER_IDS: ProviderId[] = ['openrouter', 'anthropic', 'openai', 'azure', 'ollama', 'mlx', 'lmstudio', 'custom']
 
@@ -18,38 +18,32 @@ export const DEFAULTS: AppSettings = {
   maxUsdPerDay: 5,
   workspaceRoot: '',
   scientistUrl: '',
-  scientistKey: '',
+  scientistKey: { stored: false },
   reposRoots: '',
 }
 
-export function loadSettings(): AppSettings {
-  let saved: Partial<AppSettings> = {}
-  try {
-    saved = JSON.parse(localStorage.getItem(KEY) || '{}')
-  } catch {
-    /* corrupt: start from defaults */
+/**
+ * The settings from the server. Settings (and keys) still in this browser from before are
+ * handed over once, then removed from localStorage.
+ */
+export async function loadSettings(): Promise<SettingsResponse> {
+  const legacy = localStorage.getItem(LEGACY_KEY)
+  if (legacy) {
+    let saved: unknown = {}
+    try {
+      saved = JSON.parse(legacy)
+    } catch {
+      /* corrupt: nothing to hand over */
+    }
+    const res = await saveSettings((saved && typeof saved === 'object' ? saved : {}) as SettingsUpdate)
+    localStorage.removeItem(LEGACY_KEY)
+    return res
   }
-  return {
-    keys: { ...DEFAULTS.keys, ...saved.keys },
-    baseUrls: { ...DEFAULTS.baseUrls, ...saved.baseUrls },
-    models: { ...DEFAULTS.models, ...saved.models },
-    projectsRoot: saved.projectsRoot || DEFAULTS.projectsRoot,
-    maxUsdPerDay: Number.isFinite(saved.maxUsdPerDay) ? saved.maxUsdPerDay! : DEFAULTS.maxUsdPerDay,
-    workspaceRoot: saved.workspaceRoot ?? DEFAULTS.workspaceRoot,
-    scientistUrl: saved.scientistUrl ?? DEFAULTS.scientistUrl,
-    scientistKey: saved.scientistKey ?? DEFAULTS.scientistKey,
-    reposRoots: saved.reposRoots ?? DEFAULTS.reposRoots,
-  }
+  return api<SettingsResponse>('GET', '/api/settings')
 }
 
-/** Push to the server; returns provider status (which keys it has, where from). */
-export function pushSettings(s: AppSettings) {
-  return api<ProvidersResponse>('PUT', '/api/runtime-settings', s)
-}
-
-export async function saveSettings(s: AppSettings) {
-  localStorage.setItem(KEY, JSON.stringify(s))
-  return pushSettings(s)
+export function saveSettings(s: SettingsUpdate) {
+  return api<SettingsResponse>('PUT', '/api/settings', s)
 }
 
 /** Providers the current models depend on, so we can warn about a missing key. */

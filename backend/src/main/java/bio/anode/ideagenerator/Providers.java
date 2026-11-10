@@ -24,9 +24,8 @@ import tools.jackson.databind.node.ObjectNode;
  * written "provider:model", e.g. "openrouter:anthropic/claude-sonnet-5.5",
  * "anthropic:claude-opus-5-5", "ollama:qwen3:8b". A bare "vendor/model" means OpenRouter.
  *
- * App settings (keys, base URLs, models per role) live in the browser and are
- * pushed to the server, which keeps them in memory only. Environment variables
- * are a fallback for keys.
+ * App settings (keys, base URLs, models per role) are stored per tenant
+ * ({@link Settings}). Environment variables are a fallback for keys.
  */
 public final class Providers {
     private Providers() {}
@@ -76,7 +75,7 @@ public final class Providers {
                               String projectsRoot, double maxUsdPerDay,
                               /* Idea workspace (INDEX.md + ideas/<slug>/) that projects are also filed into; "" = off */
                               String workspaceRoot,
-                              /* perso/ai-scientist: base URL and personal API key (ais_...); "" = off. Memory only, like the other keys. */
+                              /* perso/ai-scientist: base URL and personal API key (ais_...); "" = off. Encrypted at rest, like the other keys. */
                               String scientistUrl, String scientistKey,
                               /* folders whose sub-folders are code repos, comma or newline separated; checked before filing */
                               String reposRoots) {
@@ -152,7 +151,7 @@ public final class Providers {
         return p != null ? new ParsedModel(p, ref.substring(i + 1)) : new ParsedModel(Provider.OPENROUTER, ref);
     }
 
-    /** Merge settings pushed from the browser onto the defaults, keeping only well-typed values. */
+    /** Merge untrusted settings onto the defaults, keeping only well-typed values. */
     public static AppSettings mergeAppSettings(JsonNode raw) {
         AppSettings d = AppSettings.defaults();
         JsonNode r = raw == null ? Js.object() : raw;
@@ -183,16 +182,16 @@ public final class Providers {
         return s == null || s.isEmpty() ? null : s;
     }
 
-    /** Browser-entered key first, then the environment. */
+    /** The tenant's stored key first, then the environment. */
     public static String keyFor(AppSettings s, Provider p) {
         String k = nonEmpty(s.keys().get(p.id()));
         if (k == null && p.env != null) k = nonEmpty(env.apply(p.env));
         return k;
     }
 
-    /** browser | env | null */
+    /** stored | env | null */
     public static String keySource(AppSettings s, Provider p) {
-        if (nonEmpty(s.keys().get(p.id())) != null) return "browser";
+        if (nonEmpty(s.keys().get(p.id())) != null) return "stored";
         if (p.env != null && nonEmpty(env.apply(p.env)) != null) return "env";
         return null;
     }

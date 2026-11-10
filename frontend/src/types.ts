@@ -125,19 +125,31 @@ export type ProviderStatus = {
   needsKey: boolean
   search: boolean
   note: string | null
-  keySource: 'browser' | 'env' | null
+  keySource: 'stored' | 'env' | null
   baseUrl: string | null
 }
 
 export type ProvidersResponse = {
-  settingsReceived: boolean
   providers: ProviderStatus[]
   spentToday: number
   spentTotal: { usd: number; calls: number }
 }
 
+/** A secret as the server shows it: never its value. */
+export type Secret = { stored: boolean }
+
+/** GET/PUT /api/settings */
+export type SettingsResponse = ProvidersResponse & { settings: AppSettings }
+
+/** PUT /api/settings: a secret string sets it, '' deletes it, absent keeps it. */
+export type SettingsUpdate = Omit<AppSettings, 'keys' | 'scientistKey'> & {
+  keys?: Partial<Record<ProviderId, string>>
+  scientistKey?: string
+}
+
+/** App settings, stored per account on the server. */
 export type AppSettings = {
-  keys: Partial<Record<ProviderId, string>>
+  keys: Partial<Record<ProviderId, Secret>>
   baseUrls: Partial<Record<ProviderId, string>>
   models: Record<Role, string>
   projectsRoot: string
@@ -146,7 +158,7 @@ export type AppSettings = {
   workspaceRoot: string
   /** perso/ai-scientist: base URL and personal API key (ais_...); '' = off */
   scientistUrl: string
-  scientistKey: string
+  scientistKey: Secret
   /** Folders whose sub-folders are code repos (comma or newline separated), checked before filing */
   reposRoots: string
 }
@@ -217,7 +229,7 @@ export type Report = {
 
 /** Live events on GET /api/boards/:id/events. */
 export type BoardEvent =
-  | { type: 'hello'; autopilot: AutopilotStatus; settingsReceived: boolean }
+  | { type: 'hello'; autopilot: AutopilotStatus }
   | { type: 'ideas'; ideas: Idea[] }
   | { type: 'edges'; edges: Edge[] }
   | { type: 'removed'; ids: number[] }

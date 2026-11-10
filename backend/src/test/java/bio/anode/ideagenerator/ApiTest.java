@@ -39,6 +39,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.JsonNode;
@@ -136,15 +137,20 @@ class ApiTest {
     @Autowired
     Engine engine;
     @Autowired
-    RuntimeSettings runtime;
+    Settings settings;
+    @Autowired
+    JdbcClient jdbc;
 
-    static AppSettings testSettings() {
-        return AppSettings.defaults().withProjectsRoot(projectsRoot.toString()).withWorkspaceRoot(workspace.toString());
+    /** Defaults with the temporary folders, and no stored key. */
+    static ObjectNode testSettings() {
+        ObjectNode s = Settings.plain(AppSettings.defaults().withProjectsRoot(projectsRoot.toString()).withWorkspaceRoot(workspace.toString()));
+        s.putObject("keys").put("openrouter", "");
+        return s;
     }
 
     @BeforeEach
     void settings() {
-        if (!runtime.get().projectsRoot().equals(projectsRoot.toString())) runtime.set(testSettings());
+        settings.save(Repo.LOCAL, testSettings());
     }
 
     // ---------------------------------------------------------------- helpers
@@ -260,14 +266,13 @@ class ApiTest {
     @Test
     @Order(2)
     void eachRoleUsesItsOwnModelOverriddenPerBoard() {
-        ObjectNode pushed = Js.tree(runtime.get());
+        ObjectNode pushed = testSettings();
         ((ObjectNode) pushed.path("models")).put("expand", "ollama:qwen3:8b");
         pushed.putObject("keys").put("openrouter", "sk-or-secret-123");
-        Res r = api("PUT", "/api/runtime-settings", pushed);
+        Res r = api("PUT", "/api/settings", pushed);
         assertFalse(r.text().contains("sk-or-secret-123"), "keys are never echoed back");
         JsonNode openrouter = Js.arr(r.data().path("providers")).stream().filter(p -> p.path("id").asString().equals("openrouter")).findFirst().orElseThrow();
-        assertEquals("browser", openrouter.path("keySource").asString());
-        assertTrue(r.data().path("settingsReceived").asBoolean());
+        assertEquals("stored", openrouter.path("keySource").asString());
 
         JsonNode board = newBoard();
         JsonNode s = seed(id(board), "Rot");
@@ -281,7 +286,6 @@ class ApiTest {
         api("POST", "/api/ideas/" + id(s) + "/expand", Map.of());
         assertEquals("ollama:qwen3:8b", lastCall("expand").model(), "an empty override falls back to the app setting");
         engine.idle();
-        runtime.set(testSettings());
     }
 
     @Test
@@ -479,7 +483,7 @@ class ApiTest {
         reader.join(2000);
         List<String> types = seen.stream().map(e -> e.path("type").asString()).toList();
         assertEquals("hello", types.getFirst());
-        assertTrue(seen.getFirst().has("autopilot") && seen.getFirst().has("settingsReceived"));
+        assertTrue(seen.getFirst().has("autopilot") && !seen.getFirst().has("settingsReceived"));
         assertTrue(types.contains("ideas") && types.contains("judging"), String.join(",", types));
         assertTrue(rawLines.getFirst().startsWith("data: {"), "upstream framing: 'data: <json>'");
         assertEquals(404, api("GET", "/api/boards/999999/events").status());
@@ -596,5 +600,34 @@ class ApiTest {
         Res r = api("POST", "/api/ideas/" + id(seed(board, "Idé")) + "/scientist", Map.of());
         assertEquals(400, r.status());
         assertEquals("no_scientist", r.data().path("code").asString());
+    }
+
+    @Test
+    @Order(18)
+    void settingsLiveOnTheServerSecretsGoInButNeverComeOut() {
+        Res put = api("PUT", "/api/settings", Js.parse("""
+                {"keys":{"anthropic":"sk-ant-very-secret","openai":{"stored":true}},"scientistKey":"ais_secret_9","maxUsdPerDay":7}"""));
+        assertEquals(200, put.status());
+        Res get = api("GET", "/api/settings");
+        for (Res r : List.of(put, get)) {
+            assertFalse(r.text().contains("sk-ant-very-secret") || r.text().contains("ais_secret_9"), r.text());
+            assertTrue(r.data().path("settings").path("keys").path("anthropic").path("stored").asBoolean());
+            assertFalse(r.data().path("settings").path("keys").path("openai").path("stored").asBoolean(), "{stored} is not a value");
+            assertTrue(r.data().path("settings").path("scientistKey").path("stored").asBoolean());
+            assertEquals(7, r.data().path("settings").path("maxUsdPerDay").asDouble());
+        }
+        for (byte[] ct : jdbc.sql("SELECT ciphertext FROM tenant_secrets").query(byte[].class).list()) {
+            assertFalse(new String(ct, StandardCharsets.ISO_8859_1).contains("secret"), "encrypted at rest");
+        }
+        assertEquals("sk-ant-very-secret", settings.get(Repo.LOCAL).keys().get("anthropic"), "the engine gets the key");
+
+        api("PUT", "/api/settings", Map.of("maxUsdPerDay", 3));
+        assertTrue(api("GET", "/api/settings").data().path("settings").path("keys").path("anthropic").path("stored").asBoolean(), "absent = keep");
+        api("PUT", "/api/settings", Js.parse("{\"keys\":{\"anthropic\":\"\"},\"scientistKey\":\"\"}"));
+        JsonNode after = api("GET", "/api/settings").data().path("settings");
+        assertFalse(after.path("keys").path("anthropic").path("stored").asBoolean(), "\"\" = delete");
+        assertFalse(after.path("scientistKey").path("stored").asBoolean());
+        assertEquals(404, api("PUT", "/api/runtime-settings", Map.of()).status(), "the in-memory push is gone");
+        assertEquals("bad_request", api("PUT", "/api/settings", "[1]").data().path("code").asString());
     }
 }

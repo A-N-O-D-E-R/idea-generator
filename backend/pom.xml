@@ -37,6 +37,11 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>com.google.crypto.tink</groupId>
+            <artifactId>tink</artifactId>
+            <version>1.24.0</version>
+        </dependency>
         <!-- dev only: starts compose.yaml (Postgres) on spring-boot:run, not packaged -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

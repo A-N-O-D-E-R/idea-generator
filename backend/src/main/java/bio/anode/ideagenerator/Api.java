@@ -49,14 +49,14 @@ public class Api {
     private final Repo repo;
     private final Engine engine;
     private final Autopilot autopilot;
-    private final RuntimeSettings runtime;
+    private final Settings settings;
     private final ScheduledExecutorService pinger = Executors.newSingleThreadScheduledExecutor(Thread.ofVirtual().name("sse-ping").factory());
 
-    public Api(Repo repo, Engine engine, Autopilot autopilot, RuntimeSettings runtime) {
+    public Api(Repo repo, Engine engine, Autopilot autopilot, Settings settings) {
         this.repo = repo;
         this.engine = engine;
         this.autopilot = autopilot;
-        this.runtime = runtime;
+        this.settings = settings;
     }
 
     static JsonNode body(byte[] raw) {
@@ -93,20 +93,33 @@ public class Api {
     }
 
     private Map<String, Object> providerStatus() {
-        Providers.AppSettings s = runtime.get();
+        Providers.AppSettings s = settings.get(tenant());
         List<Map<String, Object>> providers = Arrays.stream(Provider.values()).map(p -> Js.obj(
                 "id", p.id(), "label", p.label, "local", p.local, "needsKey", p.needsKey, "search", p.search, "note", p.note,
                 "keySource", Providers.keySource(s, p), "baseUrl", s.baseUrls().get(p.id()))).toList();
-        return Js.obj("settingsReceived", runtime.received(), "providers", providers,
+        return Js.obj("providers", providers,
                 "spentToday", repo.spentOn(tenant(), null), "spentTotal", repo.spentTotal(tenant()));
     }
 
-    // ---- app settings: owned by the browser, held here in memory only
+    // ---- app settings, per tenant: secrets go in, never out ({stored: true|false} instead)
 
-    @PutMapping("/runtime-settings")
-    Object putRuntimeSettings(@RequestBody(required = false) byte[] raw) {
-        runtime.set(Providers.mergeAppSettings(body(raw)));
-        return providerStatus();
+    private Map<String, Object> settingsView() {
+        Map<String, Object> out = providerStatus();
+        out.put("settings", settings.view(tenant()));
+        return out;
+    }
+
+    @GetMapping("/settings")
+    Object getSettings() {
+        return settingsView();
+    }
+
+    @PutMapping("/settings")
+    Object putSettings(@RequestBody(required = false) byte[] raw) {
+        JsonNode b = body(raw);
+        if (!b.isObject()) throw new AppError(400, "bad_request", "Settings must be an object");
+        settings.save(tenant(), b);
+        return settingsView();
     }
 
     @GetMapping("/providers")
@@ -120,7 +133,7 @@ public class Api {
         Provider p = Provider.of(id);
         if (p == null) throw new AppError(404, "not_found", "Unknown provider");
         try {
-            return Js.obj("models", Providers.listModels(runtime.get(), p));
+            return Js.obj("models", Providers.listModels(settings.get(tenant()), p));
         } catch (Providers.ProviderError e) {
             throw new AppError(502, e.code, AppError.messageOf(e));
         } catch (RuntimeException e) {
@@ -235,7 +248,7 @@ public class Api {
         emitter.onCompletion(sub::cleanup);
         emitter.onTimeout(sub::cleanup);
         emitter.onError(t -> sub.cleanup());
-        sub.write(Engine.event("hello", "autopilot", autopilot.status(id), "settingsReceived", runtime.received()));
+        sub.write(Engine.event("hello", "autopilot", autopilot.status(id)));
         sub.off = engine.bus.on(id, sub::write);
         sub.ping = pinger.scheduleAtFixedRate(() -> {
             try {
