@@ -3,13 +3,13 @@
 
 import { useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
-import { api, download, follow } from './api'
+import { type ApiError, api, auth, download, follow } from './api'
 import { errorText, getLang, t } from './i18n'
 import type { Graph } from './lib/graph'
 import { medal } from './lib/score'
 import { DEFAULTS, loadSettings, providersInUse } from './settings'
 import type {
-  AppSettings, AutopilotStatus, Board, BoardData, BoardEvent, Edge, Idea, Lead, LeadSource,
+  AppSettings, AutopilotStatus, Board, BoardData, BoardEvent, Edge, Idea, Lead, LeadSource, Me,
   ProvidersResponse, Spinoff, Template, WorkspaceResult,
 } from './types'
 
@@ -38,6 +38,9 @@ export const S = {
   templates: [] as Template[],
   providers: null as ProvidersResponse | null,
   settings: DEFAULTS as AppSettings,
+  me: null as Me | null,
+  /** Not signed in (shared server): the login providers to offer. */
+  signIn: null as string[] | null,
   stopFollow: null as (() => void) | null,
   createAt: null as { x: number; y: number } | null,
   leadsOpen: false,
@@ -499,10 +502,37 @@ function onKey(e: KeyboardEvent) {
   if (e.key === 'f') graph?.fit()
 }
 
+/** A shared server (ideagen.auth=oauth): no local folders, no file manager; projects are downloaded. */
+export const isShared = () => S.me?.mode === 'oauth'
+
+export async function signOut() {
+  await api('POST', '/api/logout')
+  location.href = '/'
+}
+
+/** Download an idea's project folder as a zip. */
+export function downloadProject(ideaId: number) {
+  location.href = `/api/ideas/${ideaId}/project.zip`
+}
+
 let started = false
 export async function main() {
   if (started) return // StrictMode runs effects twice
   started = true
+  auth.onSignedOut = (body) => {
+    const login = (body as { login?: unknown })?.login
+    S.signIn = Array.isArray(login) ? login.map(String) : ['github', 'google']
+    S.stopFollow?.()
+    S.stopFollow = null
+    emit()
+  }
+  try {
+    S.me = await api<Me>('GET', '/api/me')
+  } catch (e) {
+    if ((e as ApiError).status === 401) return // the sign-in screen is up
+    throw e
+  }
+  emit()
   document.addEventListener('keydown', onKey)
   document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement) leaveExhibit()

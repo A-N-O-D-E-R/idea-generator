@@ -1,15 +1,32 @@
 server:
   port: ${PORT:8300}
-  # Local first: loopback only. There is no login, and API keys pass through here.
+  # Loopback by default. ideagen.auth=none (no login) refuses anything else; with oauth set HOST=0.0.0.0 to serve others.
   address: ${HOST:127.0.0.1}
   # Open event streams would hold a graceful shutdown for 30 s; upstream exits at once.
   shutdown: immediate
+  # auth=oauth: sessions in Postgres, 7 days idle. Behind a TLS proxy also set SERVER_FORWARD_HEADERS_STRATEGY=native,
+  # so redirect URIs are https and cookies are Secure.
+  servlet.session:
+    timeout: 7d
+    cookie.same-site: lax
 spring:
   application.name: idea-generator
   # Postgres. Dev: compose.yaml is started by spring-boot-docker-compose (mvn spring-boot:run).
   # Elsewhere set SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME and SPRING_DATASOURCE_PASSWORD.
   docker.compose.lifecycle-management: start-only
   threads.virtual.enabled: true
+  # auth=oauth logins. OAuth app callbacks: <base>/login/oauth2/code/github and <base>/login/oauth2/code/google.
+  # A provider left "unset" is not offered.
+  security.oauth2.client.registration:
+    github:
+      client-id: ${GITHUB_CLIENT_ID:unset}
+      client-secret: ${GITHUB_CLIENT_SECRET:unset}
+      scope: [read:user]
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:unset}
+      client-secret: ${GOOGLE_CLIENT_SECRET:unset}
+      scope: [openid, email, profile]
+  session.jdbc.initialize-schema: never   # Flyway owns the schema (V2__sessions.sql)
   # A built frontend (../frontend/dist) is served as static files when present.
   web.resources.static-locations: file:../frontend/dist/,classpath:/static/
 ideagen:
@@ -18,3 +35,5 @@ ideagen:
   # Tink keyset (JSON) that encrypts stored API keys; create with --generate-keyset=<file>.
   # Empty: an ephemeral keyset (auth=none only), so stored keys are lost on restart.
   keyset-file: ${IDEAGEN_KEYSET_FILE:}
+  # auth=oauth: projects of each tenant go to <data-dir>/tenants/<id>/projects (downloadable as zip).
+  data-dir: ${IDEAGEN_DATA_DIR:data}

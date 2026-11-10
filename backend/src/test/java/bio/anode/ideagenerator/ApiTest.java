@@ -161,7 +161,17 @@ class ApiTest {
         }
     }
 
-    final HttpClient http = HttpClient.newHttpClient();
+    final java.net.CookieManager cookies = new java.net.CookieManager();
+    final HttpClient http = HttpClient.newBuilder().cookieHandler(cookies).build();
+
+    /** The SPA's CSRF token: the XSRF-TOKEN cookie, sent back as X-XSRF-TOKEN. */
+    String xsrf() throws IOException, InterruptedException {
+        for (int i = 0; i < 2; i++) {
+            for (java.net.HttpCookie c : cookies.getCookieStore().getCookies()) if (c.getName().equals("XSRF-TOKEN")) return c.getValue();
+            http.send(HttpRequest.newBuilder(URI.create(base() + "/api/me")).build(), HttpResponse.BodyHandlers.discarding());
+        }
+        throw new AssertionError("no XSRF-TOKEN cookie");
+    }
 
     String base() {
         return "http://127.0.0.1:" + port;
@@ -170,6 +180,7 @@ class ApiTest {
     Res api(String method, String path, Object body) {
         try {
             HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(base() + path));
+            if (!method.equals("GET")) b.header("X-XSRF-TOKEN", xsrf());
             if (body != null) {
                 b.header("Content-Type", "application/json")
                         .method(method, HttpRequest.BodyPublishers.ofString(body instanceof String s ? s : Js.stringify(body)));
@@ -629,5 +640,26 @@ class ApiTest {
         assertFalse(after.path("scientistKey").path("stored").asBoolean());
         assertEquals(404, api("PUT", "/api/runtime-settings", Map.of()).status(), "the in-memory push is gone");
         assertEquals("bad_request", api("PUT", "/api/settings", "[1]").data().path("code").asString());
+    }
+
+    @Test
+    @Order(19)
+    void withoutLoginOnlyLoopbackNamesAndCsrfProtectedWrites() throws Exception {
+        assertEquals("none", api("GET", "/api/me").data().path("mode").asString());
+        HttpResponse<String> noToken = http.send(HttpRequest.newBuilder(URI.create(base() + "/api/boards"))
+                .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString("{}")).build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(403, noToken.statusCode(), "a POST without the CSRF header (a cross-site form) is refused");
+        assertEquals("forbidden", Js.parse(noToken.body()).path("code").asString());
+        // DNS rebinding: an attacker's name resolving to 127.0.0.1 is still not a loopback name.
+        java.net.Socket s = new java.net.Socket("127.0.0.1", port);
+        try (s) {
+            s.getOutputStream().write(("GET /api/boards HTTP/1.1\r\nHost: evil.example:" + port + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+            String head = new String(s.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            assertTrue(head.startsWith("HTTP/1.1 403"), head);
+            assertTrue(head.contains("bad_host"), head);
+        }
+        assertEquals("no_project", api("POST", "/api/ideas/" + id(seed(id(newBoard()), "Idé")) + "/reveal", Map.of()).data().path("code").asString(),
+                "reveal is not switched off locally");
+        engine.idle();
     }
 }

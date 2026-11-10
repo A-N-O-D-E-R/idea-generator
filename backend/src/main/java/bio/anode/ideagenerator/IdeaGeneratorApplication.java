@@ -60,9 +60,10 @@ public class IdeaGeneratorApplication {
         return new Secrets(keysetFile, mode.oauth());
     }
 
+    /** On a shared server (oauth) every tenant's projects live under ideagen.data-dir/tenants/<id>/projects. */
     @Bean
-    Settings settings(DataSource ds, Secrets secrets) {
-        return new Settings(ds, secrets);
+    Settings settings(DataSource ds, Secrets secrets, Mode mode, @Value("${ideagen.data-dir:data}") String dataDir) {
+        return new Settings(ds, secrets, mode.oauth() ? Path.of(dataDir) : null);
     }
 
     @Bean
@@ -75,8 +76,8 @@ public class IdeaGeneratorApplication {
 
     /** An Engine.Io bean (tests) replaces the real network, LLM and file-manager calls. */
     @Bean
-    Engine engine(Repo repo, Settings settings, ObjectProvider<Engine.Io> io) {
-        return new Engine(repo, settings::get, io.getIfAvailable(Engine.Io::real));
+    Engine engine(Repo repo, Settings settings, Mode mode, ObjectProvider<Engine.Io> io) {
+        return new Engine(repo, settings::get, io.getIfAvailable(() -> Engine.Io.real(mode.oauth())));
     }
 
     @Bean(destroyMethod = "stop")

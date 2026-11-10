@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { getLang, setLang, t } from '@/i18n'
 import {
-  S, autopilotChip, emit, enterExhibit, exportBoard, fail, openBoard, openDialog, patchBoard, useStore,
+  S, autopilotChip, emit, enterExhibit, exportBoard, fail, openBoard, openDialog, patchBoard, signOut, useStore,
 } from '@/store'
 
 /** Title and goal: edited in place, saved on change (blur or Enter), like upstream's `change` event. */
@@ -31,7 +31,7 @@ function InlineEdit({ value, onSave, className, ...rest }: {
 }
 
 export function TopBar() {
-  const { boards, board } = useStore()
+  const { boards, board, me } = useStore()
   const auto = board?.config.mode === 'auto'
   const chip = autopilotChip()
   const ghost = 'text-subtle hover:text-foreground'
@@ -149,6 +149,17 @@ export function TopBar() {
         >
           {getLang() === 'sv' ? 'EN' : 'SV'}
         </Button>
+        {me?.mode === 'oauth' ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className={cn(ghost, 'max-w-[140px] truncate')} />}>
+              {`👤 ${me.name || me.email || '?'}`}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-auto min-w-44 p-1.5">
+              {me.email ? <div className="px-2.5 py-1.5 text-xs text-muted-foreground">{me.email}</div> : null}
+              <DropdownMenuItem className="px-2.5 py-2" onClick={() => signOut().catch(fail)}>{t('signOut')}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
       </div>
     </header>
   )

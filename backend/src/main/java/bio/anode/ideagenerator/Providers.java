@@ -78,7 +78,9 @@ public final class Providers {
                               /* perso/ai-scientist: base URL and personal API key (ais_...); "" = off. Encrypted at rest, like the other keys. */
                               String scientistUrl, String scientistKey,
                               /* folders whose sub-folders are code repos, comma or newline separated; checked before filing */
-                              String reposRoots) {
+                              String reposRoots,
+                              /* a shared server (ideagen.auth=oauth): no environment keys, no private or local addresses */
+                              boolean shared) {
 
         static final String SONNET = "openrouter:anthropic/claude-sonnet-5.5";
 
@@ -92,23 +94,28 @@ public final class Providers {
             // Sonnet 5.5: calibrated judge, idiomatic Swedish. Grok: the only route that can search X.
             Map<String, String> models = new LinkedHashMap<>();
             for (String r : ROLES) models.put(r, r.equals("x") ? "openrouter:x-ai/grok-4.3" : SONNET);
-            return new AppSettings(new LinkedHashMap<>(), baseUrls, models, "~/Projekt/idea-projects", 5, "", "", "", "");
+            return new AppSettings(new LinkedHashMap<>(), baseUrls, models, "~/Projekt/idea-projects", 5, "", "", "", "", false);
         }
 
         public AppSettings withProjectsRoot(String root) {
-            return new AppSettings(keys, baseUrls, models, root, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey, reposRoots);
+            return new AppSettings(keys, baseUrls, models, root, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey, reposRoots, shared);
         }
 
         public AppSettings withWorkspaceRoot(String root) {
-            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, root, scientistUrl, scientistKey, reposRoots);
+            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, root, scientistUrl, scientistKey, reposRoots, shared);
         }
 
         public AppSettings withScientist(String url, String key) {
-            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, url, key, reposRoots);
+            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, url, key, reposRoots, shared);
+        }
+
+        /** The shared-server view: projects confined to the tenant's folder, no workspace, no repo scan. */
+        public AppSettings sharedWith(String tenantProjects) {
+            return new AppSettings(keys, baseUrls, models, tenantProjects, maxUsdPerDay, "", scientistUrl, scientistKey, "", true);
         }
 
         public AppSettings withReposRoots(String roots) {
-            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey, roots);
+            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey, roots, shared);
         }
     }
 
@@ -175,31 +182,71 @@ public final class Providers {
                 workspace.matches("^(~/|/).*") ? workspace : d.workspaceRoot(),
                 Js.str(r.path("scientistUrl"), 500).matches("^https?://.*") ? Js.str(r.path("scientistUrl"), 500).replaceAll("/+$", "") : d.scientistUrl(),
                 Js.str(r.path("scientistKey"), 500),
-                Js.str(r.path("reposRoots"), 2000));
+                Js.str(r.path("reposRoots"), 2000), false);
     }
 
     private static String nonEmpty(String s) {
         return s == null || s.isEmpty() ? null : s;
     }
 
-    /** The tenant's stored key first, then the environment. */
+    /** The tenant's stored key first, then the environment (never on a shared server). */
     public static String keyFor(AppSettings s, Provider p) {
         String k = nonEmpty(s.keys().get(p.id()));
-        if (k == null && p.env != null) k = nonEmpty(env.apply(p.env));
+        if (k == null && p.env != null && !s.shared()) k = nonEmpty(env.apply(p.env));
         return k;
     }
 
     /** stored | env | null */
     public static String keySource(AppSettings s, Provider p) {
         if (nonEmpty(s.keys().get(p.id())) != null) return "stored";
-        if (p.env != null && nonEmpty(env.apply(p.env)) != null) return "env";
+        if (p.env != null && !s.shared() && nonEmpty(env.apply(p.env)) != null) return "env";
         return null;
     }
 
+    /** The base URL; on a shared server it must be a public http(s) address. */
     private static String baseFor(AppSettings s, Provider p) {
         String b = nonEmpty(s.baseUrls().get(p.id()));
         if (b == null) b = p.base == null ? "" : p.base;
-        return b.replaceAll("/+$", "");
+        b = b.replaceAll("/+$", "");
+        if (s.shared() && !b.isEmpty()) requirePublic(b);
+        return b;
+    }
+
+    /**
+     * On a shared server, user-given URLs (provider base URLs, the AI Scientist, links to seed from) must not reach
+     * the server's own network: only http(s) to hosts whose every address is public.
+     * ponytail: checked at resolve time; DNS rebinding between this check and the connect is not covered.
+     */
+    public static void requirePublic(String url) {
+        URI u;
+        try {
+            u = URI.create(url);
+        } catch (IllegalArgumentException e) {
+            throw new ProviderError("bad_url", "Not a valid address");
+        }
+        String scheme = u.getScheme() == null ? "" : u.getScheme().toLowerCase(java.util.Locale.ROOT);
+        if (!(scheme.equals("http") || scheme.equals("https")) || u.getHost() == null) {
+            throw new ProviderError("bad_url", "Only http(s) addresses are allowed");
+        }
+        java.net.InetAddress[] all;
+        try {
+            all = java.net.InetAddress.getAllByName(u.getHost());
+        } catch (java.net.UnknownHostException e) {
+            throw new ProviderError("unreachable", u.getHost() + " does not resolve");
+        }
+        for (java.net.InetAddress a : all) {
+            if (isPrivate(a)) throw new ProviderError("private_address", u.getHost() + " is a local or private address, not allowed on a shared server");
+        }
+    }
+
+    static boolean isPrivate(java.net.InetAddress a) {
+        byte[] b = a.getAddress();
+        if (a.isLoopbackAddress() || a.isAnyLocalAddress() || a.isLinkLocalAddress() || a.isSiteLocalAddress() || a.isMulticastAddress()) return true;
+        if (b.length == 4) {
+            int x = b[0] & 0xff, y = b[1] & 0xff;
+            return x == 0 || (x == 100 && y >= 64 && y < 128) || (x == 198 && (y == 18 || y == 19)) || x >= 240;
+        }
+        return (b[0] & 0xfe) == 0xfc; // IPv6 unique local fc00::/7
     }
 
     // Anthropic first-party prices (USD per million tokens), for the budget limiter.
@@ -239,20 +286,31 @@ public final class Providers {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
+    /** A shared server does not follow redirects from user-given addresses (they could point inside). */
+    static final HttpClient HTTP_NO_REDIRECT = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
+            .followRedirects(HttpClient.Redirect.NEVER)
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
     static HttpResponse<String> send(HttpRequest.Builder req, Map<String, String> headers) throws IOException {
+        return send(HTTP, req, headers);
+    }
+
+    static HttpResponse<String> send(HttpClient client, HttpRequest.Builder req, Map<String, String> headers) throws IOException {
         headers.forEach(req::header);
         try {
-            return HTTP.send(req.build(), HttpResponse.BodyHandlers.ofString());
+            return client.send(req.build(), HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("interrupted", e);
         }
     }
 
-    static HttpResponse<String> post(String url, Map<String, String> headers, JsonNode body, Duration timeout) throws IOException {
+    static HttpResponse<String> post(AppSettings s, String url, Map<String, String> headers, JsonNode body, Duration timeout) throws IOException {
         Map<String, String> h = new LinkedHashMap<>(headers);
         h.put("Content-Type", "application/json");
-        return send(HttpRequest.newBuilder(URI.create(url)).timeout(timeout).POST(HttpRequest.BodyPublishers.ofString(Js.stringify(body))), h);
+        return send(s.shared() ? HTTP_NO_REDIRECT : HTTP, HttpRequest.newBuilder(URI.create(url)).timeout(timeout).POST(HttpRequest.BodyPublishers.ofString(Js.stringify(body))), h);
     }
 
     private static boolean ok(int status) {
@@ -322,7 +380,7 @@ public final class Providers {
 
             HttpResponse<String> res;
             try {
-                res = post(base + "/chat/completions", headers, body, Duration.ofSeconds(r.plugins() != null ? 150 : 120));
+                res = post(settings, base + "/chat/completions", headers, body, Duration.ofSeconds(r.plugins() != null ? 150 : 120));
             } catch (IOException e) {
                 throw unchecked(e);
             }
@@ -407,7 +465,7 @@ public final class Providers {
         for (int attempt = 0; attempt < 3; attempt++) {
             HttpResponse<String> res;
             try {
-                res = post(base + "/api/chat", Map.of(), body, Duration.ofSeconds(300));
+                res = post(settings, base + "/api/chat", Map.of(), body, Duration.ofSeconds(300));
             } catch (IOException | IllegalArgumentException e) {
                 throw new ProviderError("unreachable", "Ollama at " + base + " is not reachable (" + causeCode(e) + "). Is it running?");
             }
@@ -518,10 +576,10 @@ public final class Providers {
 
     // ---------------------------------------------------------------- model lists
 
-    private static JsonNode getJson(String url, Map<String, String> headers) throws IOException {
+    private static JsonNode getJson(AppSettings s, String url, Map<String, String> headers) throws IOException {
         Map<String, String> h = new LinkedHashMap<>(headers);
         h.putIfAbsent("Accept", "application/json");
-        HttpResponse<String> res = send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(10)).GET(), h);
+        HttpResponse<String> res = send(s.shared() ? HTTP_NO_REDIRECT : HTTP, HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(10)).GET(), h);
         String text = res.body();
         if (!ok(res.statusCode())) {
             throw new ProviderError(res.statusCode() == 401 || res.statusCode() == 403 ? "bad_key" : "provider_error",
@@ -556,14 +614,14 @@ public final class Providers {
             }
             if (p == Provider.OLLAMA) {
                 List<String> out = new ArrayList<>();
-                for (JsonNode m : Js.arr(getJson(base + "/api/tags", Map.of()).path("models"))) out.add(Js.str(m.path("name")));
+                for (JsonNode m : Js.arr(getJson(settings, base + "/api/tags", Map.of()).path("models"))) out.add(Js.str(m.path("name")));
                 return out;
             }
             if (base.isEmpty()) throw new ProviderError("no_base_url", "Set a base URL first");
             if (p.needsKey && key == null) throw new ProviderError("no_key", "No API key");
             Map<String, String> headers = key == null ? Map.of() : p == Provider.AZURE ? Map.of("api-key", key) : Map.of("Authorization", "Bearer " + key);
             List<String> out = new ArrayList<>();
-            for (JsonNode m : Js.arr(getJson(base + "/models", headers).path("data"))) out.add(Js.str(m.path("id")));
+            for (JsonNode m : Js.arr(getJson(settings, base + "/models", headers).path("data"))) out.add(Js.str(m.path("id")));
             out.sort(null);
             return out;
         } catch (ProviderError e) {

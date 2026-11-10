@@ -2,12 +2,23 @@
 
 import type { BoardEvent } from './types'
 
-export type ApiError = Error & { code?: string; status?: number }
+export type ApiError = Error & { code?: string; status?: number; body?: unknown }
+
+/** Called when the server says the session is gone (401); set by the store. */
+export const auth = { onSignedOut: (_body: unknown) => {} }
+
+/** The server's CSRF token (XSRF-TOKEN cookie), echoed in X-XSRF-TOKEN on every write. */
+function xsrf() {
+  const m = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/)
+  return m ? decodeURIComponent(m[1]) : ''
+}
 
 export async function api<T = unknown>(method: string, url: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = body !== undefined ? { 'Content-Type': 'application/json' } : {}
+  if (method !== 'GET') headers['X-XSRF-TOKEN'] = xsrf()
   const res = await fetch(url, {
     method,
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
+    headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
   const isJson = res.headers.get('content-type')?.includes('json')
@@ -16,6 +27,8 @@ export async function api<T = unknown>(method: string, url: string, body?: unkno
     const err: ApiError = new Error((isJson && data?.error) || res.statusText)
     err.code = isJson ? data?.code : 'http_' + res.status
     err.status = res.status
+    err.body = data
+    if (res.status === 401) auth.onSignedOut(data)
     throw err
   }
   return data as T

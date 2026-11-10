@@ -140,14 +140,39 @@ public final class Extract {
     static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.ALWAYS).connectTimeout(Duration.ofSeconds(12)).build();
 
+    static final HttpClient NO_REDIRECT_CLIENT = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NEVER).connectTimeout(Duration.ofSeconds(12)).build();
+
     public static Page fetchPage(String url) {
+        return fetchPage(url, false);
+    }
+
+    private static HttpRequest pageRequest(String url) {
+        return HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(12))
+                .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36")
+                .header("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8")
+                .header("Accept-Language", "sv,en;q=0.8")
+                .GET().build();
+    }
+
+    /** shared: a shared server checks every address, redirects included, before connecting (see Providers.requirePublic). */
+    public static Page fetchPage(String url, boolean shared) {
         try {
-            HttpRequest req = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(12))
-                    .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36")
-                    .header("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8")
-                    .header("Accept-Language", "sv,en;q=0.8")
-                    .GET().build();
-            HttpResponse<InputStream> res = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofInputStream());
+            HttpResponse<InputStream> res;
+            if (shared) {
+                String at = url;
+                for (int hops = 0; ; hops++) {
+                    Providers.requirePublic(at);
+                    res = NO_REDIRECT_CLIENT.send(pageRequest(at), HttpResponse.BodyHandlers.ofInputStream());
+                    String next = res.statusCode() / 100 == 3 ? res.headers().firstValue("location").orElse(null) : null;
+                    if (next == null) break;
+                    res.body().close();
+                    if (hops >= 5) throw new RuntimeException("Too many redirects");
+                    at = URI.create(at).resolve(next).toString();
+                }
+            } else {
+                res = HTTP_CLIENT.send(pageRequest(url), HttpResponse.BodyHandlers.ofInputStream());
+            }
             try (InputStream in = res.body()) {
                 if (res.statusCode() < 200 || res.statusCode() > 299) throw new RuntimeException("HTTP " + res.statusCode());
                 String type = res.headers().firstValue("content-type").orElse("");

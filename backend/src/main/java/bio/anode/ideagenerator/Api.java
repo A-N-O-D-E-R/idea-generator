@@ -14,7 +14,12 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.nio.file.Path;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -50,13 +55,15 @@ public class Api {
     private final Engine engine;
     private final Autopilot autopilot;
     private final Settings settings;
+    private final IdeaGeneratorApplication.Mode mode;
     private final ScheduledExecutorService pinger = Executors.newSingleThreadScheduledExecutor(Thread.ofVirtual().name("sse-ping").factory());
 
-    public Api(Repo repo, Engine engine, Autopilot autopilot, Settings settings) {
+    public Api(Repo repo, Engine engine, Autopilot autopilot, Settings settings, IdeaGeneratorApplication.Mode mode) {
         this.repo = repo;
         this.engine = engine;
         this.autopilot = autopilot;
         this.settings = settings;
+        this.mode = mode;
     }
 
     static JsonNode body(byte[] raw) {
@@ -81,9 +88,21 @@ public class Api {
         return "en".equals(v) ? "en" : "sv";
     }
 
-    /** The signed-in tenant. */
+    /** The signed-in tenant ("local" without login). Every route works on this tenant's data only. */
     private String tenant() {
-        return Repo.LOCAL;
+        if (!mode.oauth()) return Repo.LOCAL;
+        if (SecurityContextHolder.getContext().getAuthentication() instanceof Authentication a && a.getPrincipal() instanceof Security.TenantUser u) {
+            return u.tenantId();
+        }
+        throw new AppError(401, "unauthenticated", "Sign in first");
+    }
+
+    /** Who is signed in, and the mode, so the UI can hide what a shared server does not do. */
+    @GetMapping("/me")
+    Object me() {
+        if (!mode.oauth()) return Js.obj("mode", "none");
+        Repo.Me me = repo.me(tenant());
+        return Js.obj("mode", "oauth", "name", me.name(), "email", me.email());
     }
 
     private Board mustBoard(long id) {
@@ -309,6 +328,15 @@ public class Api {
     Object project(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         body(raw);
         return engine.createProject(tenant(), id);
+    }
+
+    /** The idea's project folder as a zip (on a shared server the only way to get it). */
+    @GetMapping("/ideas/{id:\\d+}/project.zip")
+    ResponseEntity<StreamingResponseBody> projectZip(@PathVariable long id) {
+        Path dir = engine.projectDir(tenant(), id);
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType("application/zip"))
+                .header("Content-Disposition", ContentDisposition.attachment().filename(dir.getFileName() + ".zip").build().toString())
+                .body(out -> Project.zip(dir, out));
     }
 
     @PostMapping("/ideas/{id:\\d+}/reveal")

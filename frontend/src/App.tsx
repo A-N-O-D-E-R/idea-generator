@@ -9,13 +9,15 @@ import { Report } from '@/components/Report'
 import { BoardSettings } from '@/components/BoardSettings'
 import { AppSettings, ModelList } from '@/components/AppSettings'
 import { AnnounceDialog, ConfirmDialog, NewBoardDialog } from '@/components/Dialogs'
+import { SignIn } from '@/components/SignIn'
 import { fail, main, useStore } from '@/store'
 
 export default function App() {
-  const { exhibit, leadsOpen, view, dialog, board } = useStore()
+  const { exhibit, leadsOpen, view, dialog, board, signIn } = useStore()
   useEffect(() => {
     main().catch(fail)
   }, [])
+  if (signIn) return <SignIn providers={signIn} />
   return (
     // The hidden top bar leaves the grid entirely in exhibition mode, so main is the only row.
     <div className={exhibit ? 'grid h-full grid-rows-[1fr]' : 'grid h-full grid-rows-[auto_1fr]'}>

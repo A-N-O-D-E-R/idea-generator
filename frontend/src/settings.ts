@@ -39,12 +39,15 @@ export async function loadSettings(): Promise<SettingsResponse> {
     localStorage.removeItem(LEGACY_KEY)
     return res
   }
-  return api<SettingsResponse>('GET', '/api/settings')
+  return withDefaults(await api<SettingsResponse>('GET', '/api/settings'))
 }
 
-export function saveSettings(s: SettingsUpdate) {
-  return api<SettingsResponse>('PUT', '/api/settings', s)
+export async function saveSettings(s: SettingsUpdate) {
+  return withDefaults(await api<SettingsResponse>('PUT', '/api/settings', s))
 }
+
+/** A shared server leaves out the folder settings; keep the form's fields defined. */
+const withDefaults = (r: SettingsResponse): SettingsResponse => ({ ...r, settings: { ...DEFAULTS, ...r.settings } })
 
 /** Providers the current models depend on, so we can warn about a missing key. */
 export function providersInUse(s: AppSettings) {

@@ -11,7 +11,7 @@ import type { Idea } from '@/types'
 import { Grow, RankItem, Seg, Swatch } from './Field'
 import {
   MEDAL_ICON, S, copyText, deleteIdea, emit, expand, fail, focusIdea, graph, ideaList, makeProject, notify, openBoard,
-  openDialog, rejudge, reveal, selectIdea, setMedal, spinoff, summarize, duel, toScientist, useStore,
+  openDialog, rejudge, reveal, selectIdea, isShared, downloadProject, setMedal, spinoff, summarize, duel, toScientist, useStore,
 } from '@/store'
 
 const H3 = ({ children }: { children: React.ReactNode }) => (
@@ -145,11 +145,17 @@ function IdeaView({ idea }: { idea: Idea }) {
       <div className="my-2.5">
         {idea.projectPath ? (
           <>
-            <div className="mb-1.5 text-xs break-all text-subtle" title={idea.projectPath}>{`📁 ${idea.projectPath}`}</div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="secondary" size="sm" onClick={() => reveal(idea.id)}>{t('revealProject')}</Button>
-              <Button variant="secondary" size="sm" onClick={() => copyText(startCmd)}>{t('copyStart')}</Button>
-            </div>
+            {isShared() ? (
+              <Button variant="secondary" size="sm" onClick={() => downloadProject(idea.id)}>{`📦 ${t('downloadProject')}`}</Button>
+            ) : (
+              <>
+                <div className="mb-1.5 text-xs break-all text-subtle" title={idea.projectPath}>{`📁 ${idea.projectPath}`}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => reveal(idea.id)}>{t('revealProject')}</Button>
+                  <Button variant="secondary" size="sm" onClick={() => copyText(startCmd)}>{t('copyStart')}</Button>
+                </div>
+              </>
+            )}
           </>
         ) : (
           <Button

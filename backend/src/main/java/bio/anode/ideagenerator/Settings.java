@@ -2,6 +2,7 @@ package bio.anode.ideagenerator;
 
 import bio.anode.ideagenerator.Providers.AppSettings;
 import bio.anode.ideagenerator.Providers.Provider;
+import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.List;
@@ -28,11 +29,24 @@ public class Settings {
     private final JdbcClient db;
     private final TransactionTemplate tx;
     private final Secrets secrets;
+    /** Shared server (ideagen.auth=oauth): projects live under dataDir/tenants/<id>/projects, workspace and repo scan off. */
+    private final Path dataDir;
 
-    public Settings(DataSource ds, Secrets secrets) {
+    public Settings(DataSource ds, Secrets secrets, Path dataDir) {
         this.db = JdbcClient.create(ds);
         this.tx = new TransactionTemplate(new DataSourceTransactionManager(ds));
         this.secrets = secrets;
+        this.dataDir = dataDir == null ? null : dataDir.toAbsolutePath().normalize();
+    }
+
+    public boolean shared() {
+        return dataDir != null;
+    }
+
+    /** The tenant's own projects folder on a shared server. Tenant ids are UUIDs (or "local"), never path syntax. */
+    Path projectsOf(String t) {
+        if (!t.matches("[A-Za-z0-9-]+")) throw new IllegalArgumentException("bad tenant id");
+        return dataDir.resolve("tenants").resolve(t).resolve("projects");
     }
 
     /** Providers that take an API key. */
@@ -67,7 +81,8 @@ public class Settings {
         ObjectNode keys = raw.putObject("keys");
         for (Provider p : keyed()) if (plain.containsKey(p.id())) keys.put(p.id(), plain.get(p.id()));
         raw.put("scientistKey", plain.getOrDefault(SCIENTIST, ""));
-        return Providers.mergeAppSettings(raw);
+        AppSettings s = Providers.mergeAppSettings(raw);
+        return shared() ? s.sharedWith(projectsOf(t).toString()) : s;
     }
 
     /** The settings without any secret. */
@@ -75,11 +90,13 @@ public class Settings {
         ObjectNode o = Js.object();
         o.set("baseUrls", Js.tree(s.baseUrls()));
         o.set("models", Js.tree(s.models()));
-        o.put("projectsRoot", s.projectsRoot());
         o.put("maxUsdPerDay", s.maxUsdPerDay());
-        o.put("workspaceRoot", s.workspaceRoot());
         o.put("scientistUrl", s.scientistUrl());
-        o.put("reposRoots", s.reposRoots());
+        if (!s.shared()) { // server paths are nobody's business on a shared server
+            o.put("projectsRoot", s.projectsRoot());
+            o.put("workspaceRoot", s.workspaceRoot());
+            o.put("reposRoots", s.reposRoots());
+        }
         return o;
     }
 
@@ -101,7 +118,9 @@ public class Settings {
     public synchronized void save(String t, JsonNode body) {
         ObjectNode cur = stored(t);
         for (String f : PLAIN) if (body.has(f)) cur.set(f, body.get(f));
-        String json = Js.stringify(plain(Providers.mergeAppSettings(cur)));
+        AppSettings merged = Providers.mergeAppSettings(cur);
+        // On a shared server the folder settings are ignored, so they are not stored either.
+        String json = Js.stringify(plain(shared() ? merged.sharedWith("") : merged));
         tx.executeWithoutResult(s -> {
             db.sql("""
                             INSERT INTO tenant_settings (tenant_id, settings) VALUES (?, ?)

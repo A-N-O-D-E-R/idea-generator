@@ -6,6 +6,9 @@ export type Role = 'distill' | 'expand' | 'combine' | 'judge' | 'summary' | 'res
 export type ProviderId = 'openrouter' | 'anthropic' | 'openai' | 'azure' | 'ollama' | 'mlx' | 'lmstudio' | 'custom'
 export type LeadSource = 'x' | 'research'
 
+/** GET /api/me: none = the local single-user tool, oauth = a shared server with accounts. */
+export type Me = { mode: 'none' } | { mode: 'oauth'; name: string; email: string | null }
+
 export type Idea = {
   id: number
   boardId: number

@@ -109,6 +109,33 @@ public class Repo {
         });
     }
 
+    /**
+     * The tenant of this login, created on first login. One identity = one tenant: there is no merging by email
+     * (an account-takeover path) and no linking of a second provider.
+     */
+    public synchronized String login(String provider, String subject, String name, String email) {
+        return inTx(() -> {
+            String owner = db.sql("SELECT tenant_id FROM identities WHERE provider = ? AND subject = ?").params(provider, subject)
+                    .query(String.class).optional().orElse(null);
+            if (owner == null) {
+                owner = java.util.UUID.randomUUID().toString();
+                ensureTenant(owner, name, email);
+                db.sql("INSERT INTO identities (provider, subject, tenant_id, email) VALUES (?, ?, ?, ?)").params(provider, subject, owner, email).update();
+            } else {
+                db.sql("UPDATE tenants SET name = ?, email = ? WHERE id = ?").params(name == null ? "" : name, email, owner).update();
+                db.sql("UPDATE identities SET email = ? WHERE provider = ? AND subject = ?").params(email, provider, subject).update();
+            }
+            return owner;
+        });
+    }
+
+    public record Me(String name, String email) {}
+
+    public synchronized Me me(String t) {
+        return db.sql("SELECT name, email FROM tenants WHERE id = ?").param(t)
+                .query((r, n) -> new Me(r.getString("name"), r.getString("email"))).optional().orElse(new Me("", null));
+    }
+
     // ---------------------------------------------------------------- row mapping
 
     static final String IDEA_SELECT = """

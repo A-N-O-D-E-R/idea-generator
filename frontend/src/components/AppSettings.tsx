@@ -12,7 +12,7 @@ import { errorText, t } from '@/i18n'
 import { DEFAULTS, PROVIDER_IDS, ROLES, saveSettings } from '@/settings'
 import type { AppSettings as Settings, ProviderId, SettingsUpdate } from '@/types'
 import { Dlg, Field, Fieldset } from './Field'
-import { S, emit, fail, notify, openDialog, useStore, warnMissingKeys } from '@/store'
+import { S, emit, fail, isShared, notify, openDialog, useStore, warnMissingKeys } from '@/store'
 
 const PROVIDER_LABELS: Record<ProviderId, string> = {
   openrouter: 'OpenRouter', anthropic: 'Anthropic', openai: 'OpenAI',
@@ -20,6 +20,7 @@ const PROVIDER_LABELS: Record<ProviderId, string> = {
 }
 const HAS_URL: ProviderId[] = ['ollama', 'mlx', 'lmstudio', 'azure', 'custom']
 const HAS_KEY: ProviderId[] = ['openrouter', 'anthropic', 'openai', 'azure', 'custom']
+const LOCAL: ProviderId[] = ['ollama', 'mlx', 'lmstudio']
 
 /** <datalist> of models found with the Test buttons, for every model field. */
 export function ModelList() {
@@ -103,7 +104,8 @@ export function AppSettings() {
     >
       <p className="text-xs text-muted-foreground">{t('settingsNote')}</p>
       <Fieldset legend={t('providers')}>
-        {PROVIDER_IDS.map((p, i) => {
+        {/* Local providers would be the server's own machine on a shared server. */}
+        {PROVIDER_IDS.filter((p) => !(isShared() && LOCAL.includes(p))).map((p, i) => {
           const st = status.get(p)
           return (
             <div key={p} className={cn('py-2.5', i > 0 && 'border-t')}>
@@ -151,7 +153,7 @@ export function AppSettings() {
         </div>
         <small className="text-muted-foreground">{t('calibrateNote')}</small>
       </Fieldset>
-      <Fieldset legend="Claude Code">
+      {isShared() ? null : <Fieldset legend="Claude Code">
         <Field label={t('projectsRoot')}>
           <Input value={s.projectsRoot} onChange={(e) => setS({ ...s, projectsRoot: e.target.value })} />
         </Field>
@@ -161,7 +163,7 @@ export function AppSettings() {
         <Field label={t('reposRoots')} note={t('reposNote')}>
           <Textarea rows={2} value={s.reposRoots} placeholder="~/Documents/Code/perso" onChange={(e) => setS({ ...s, reposRoots: e.target.value })} />
         </Field>
-      </Fieldset>
+      </Fieldset>}
       <Fieldset legend="AI Scientist">
         <small className="text-muted-foreground">{t('scientistNote')}</small>
         <Field label={t('scientistUrl')}>

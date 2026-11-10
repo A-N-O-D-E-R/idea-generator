@@ -239,6 +239,19 @@ public final class Project {
         return dir.toString();
     }
 
+    /** Zip a project folder as <folder>/...; regular files only, symlinks are skipped (they could point anywhere). */
+    public static void zip(Path dir, java.io.OutputStream out) throws IOException {
+        Path base = dir.getParent() == null ? dir : dir.getParent();
+        try (var zip = new java.util.zip.ZipOutputStream(out); var files = Files.walk(dir)) {
+            for (Path f : (Iterable<Path>) files::iterator) {
+                if (!Files.isRegularFile(f, java.nio.file.LinkOption.NOFOLLOW_LINKS)) continue;
+                zip.putNextEntry(new java.util.zip.ZipEntry(base.relativize(f).toString().replace('\\', '/')));
+                Files.copy(f, zip);
+                zip.closeEntry();
+            }
+        }
+    }
+
     /** Open a folder in the OS file manager (upstream used macOS `open`). */
     public static void reveal(String path) {
         String cmd = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("mac") ? "open" : "xdg-open";

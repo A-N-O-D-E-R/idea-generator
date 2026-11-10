@@ -9,7 +9,7 @@ import { errorText, getLang, locale, t } from '@/i18n'
 import type { BriefIdea, Report as ReportData } from '@/types'
 import { Tile, ViewHead } from './Dashboard'
 import { Grow, RankItem } from './Field'
-import { S, copyText, emit, fail, onOpenIdea, openBoard, reveal } from '@/store'
+import { S, copyText, downloadProject, emit, fail, isShared, onOpenIdea, openBoard, reveal } from '@/store'
 
 const MEDAL_ICON = ['', '🥉', '🥈', '🥇']
 const startCmd = (path: string) => `cd "${path}" && claude`
@@ -125,13 +125,21 @@ export function Report() {
                         {`${p.boardTitle}${p.sum != null ? ` · ${p.sum}/15 ${MEDAL_ICON[p.medal ?? 0] ?? ''}` : ''}`}
                       </span>
                     </div>
-                    <code className="my-1.5 block overflow-x-auto rounded-md bg-background px-2 py-1.5 font-mono text-xs whitespace-nowrap text-subtle">
-                      {startCmd(p.path)}
-                    </code>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button variant="secondary" size="sm" onClick={() => copyText(startCmd(p.path))}>{t('copyStart')}</Button>
-                      <Button variant="secondary" size="sm" onClick={() => reveal(p.id)}>{t('revealProject')}</Button>
-                    </div>
+                    {isShared() ? (
+                      <div className="mt-1.5">
+                        <Button variant="secondary" size="sm" onClick={() => downloadProject(p.id)}>{`📦 ${t('downloadProject')}`}</Button>
+                      </div>
+                    ) : (
+                      <>
+                        <code className="my-1.5 block overflow-x-auto rounded-md bg-background px-2 py-1.5 font-mono text-xs whitespace-nowrap text-subtle">
+                          {startCmd(p.path)}
+                        </code>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button variant="secondary" size="sm" onClick={() => copyText(startCmd(p.path))}>{t('copyStart')}</Button>
+                          <Button variant="secondary" size="sm" onClick={() => reveal(p.id)}>{t('revealProject')}</Button>
+                        </div>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>

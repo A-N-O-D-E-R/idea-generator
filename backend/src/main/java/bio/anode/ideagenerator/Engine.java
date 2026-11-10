@@ -46,8 +46,9 @@ public class Engine {
     /** chat: a chat routed with the given (tenant's) settings. */
     public record Io(Function<AppSettings, Chat> chat, Function<String, Extract.Page> fetchPage, Function<String, List<Leads.Paper>> fetchPapers,
                      Consumer<String> reveal, boolean gitInit, Function<String, List<Leads.Paper>> searchPapers) {
-        public static Io real() {
-            return new Io(Providers::makeChat, Extract::fetchPage, Leads::fetchPapers, Project::reveal, true, Leads::searchPapers);
+        /** shared: a shared server (ideagen.auth=oauth) only fetches public addresses. */
+        public static Io real(boolean shared) {
+            return new Io(Providers::makeChat, url -> Extract.fetchPage(url, shared), Leads::fetchPapers, Project::reveal, true, Leads::searchPapers);
         }
     }
 
@@ -406,11 +407,28 @@ public class Engine {
 
     public Map<String, Object> reveal(String t, long ideaId) {
         Idea idea = mustIdea(t, ideaId);
+        if (settings(mustBoard(t, idea.boardId())).shared()) throw new AppError(403, "not_available", "Not available on a shared server");
         if (idea.projectPath() == null || idea.projectPath().isEmpty() || !Files.exists(Path.of(idea.projectPath()))) {
             throw new AppError(404, "no_project", "The project folder is gone");
         }
         io.reveal().accept(idea.projectPath());
         return Js.obj("ok", true);
+    }
+
+    /** The idea's project folder, for the zip download; on a shared server only inside the tenant's projects folder. */
+    public Path projectDir(String t, long ideaId) {
+        Idea idea = mustIdea(t, ideaId);
+        if (idea.projectPath() == null || idea.projectPath().isEmpty() || !Files.isDirectory(Path.of(idea.projectPath()))) {
+            throw new AppError(404, "no_project", "This idea has no project folder");
+        }
+        AppSettings s = settings(mustBoard(t, idea.boardId()));
+        try {
+            Path dir = Path.of(idea.projectPath()).toRealPath();
+            if (s.shared() && !dir.startsWith(Path.of(s.projectsRoot()).toRealPath())) throw new AppError(404, "no_project", "This idea has no project folder");
+            return dir;
+        } catch (IOException e) {
+            throw new AppError(404, "no_project", "This idea has no project folder");
+        }
     }
 
     public Map<String, Object> setMedal(String t, long ideaId, JsonNode m) {
@@ -468,9 +486,17 @@ public class Engine {
         Idea idea = mustIdea(t, ideaId);
         Board board = mustBoard(t, idea.boardId());
         AppSettings s = settings(board);
-        String key = !s.scientistKey().isEmpty() ? s.scientistKey() : java.util.Objects.requireNonNullElse(System.getenv("AI_SCIENTIST_API_KEY"), "");
+        String key = !s.scientistKey().isEmpty() || s.shared() ? s.scientistKey()
+                : java.util.Objects.requireNonNullElse(Providers.env.apply("AI_SCIENTIST_API_KEY"), "");
         if (s.scientistUrl().isEmpty() || key.isEmpty()) {
             throw new AppError(400, "no_scientist", "Set the AI Scientist address and API key in the app settings");
+        }
+        if (s.shared()) {
+            try {
+                Providers.requirePublic(s.scientistUrl());
+            } catch (ProviderError e) {
+                throw new AppError(400, e.code, AppError.messageOf(e));
+            }
         }
         return Js.obj("job", Scientist.submit(s.scientistUrl(), key, idea, board.goal()));
     }

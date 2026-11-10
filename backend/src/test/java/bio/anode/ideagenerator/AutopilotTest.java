@@ -170,4 +170,23 @@ class AutopilotTest {
         assertTrue(ideas.stream().allMatch(i -> i.judgedAt() != null), "every step leaves its ideas judged");
         assertTrue(ideas.stream().anyMatch(i -> i.kind().equals("combine") && i.generation() >= 2));
     }
+
+    @Test
+    void eachTenantHasItsOwnGlobalBudget() {
+        Repo repo = memoryRepo();
+        repo.ensureTenant("rich", "", null);
+        repo.ensureTenant("broke", "", null);
+        String auto = "{\"mode\":\"auto\",\"rate\":{\"usdPerDay\":100}}";
+        Board rich = repo.createBoard("rich", "R", Js.parse(auto));
+        Board broke = repo.createBoard("broke", "B", Js.parse(auto));
+        repo.addSpend("broke", 0, 6); // over its $5 app-wide limit, on no board
+        List<String> stepped = new ArrayList<>();
+        Autopilot ap = new Autopilot(repo, new Engine.Bus(), (t, boardId) -> {
+            stepped.add(t + ":" + boardId);
+            return new Engine.Step("combine", null, null);
+        }, t -> AppSettings.defaults(), () -> T, Runnable::run);
+        ap.tick();
+        assertEquals(List.of("rich:" + rich.id()), stepped, "a step runs as the board's own tenant");
+        assertEquals("global_budget", ap.status(broke.id()).state());
+    }
 }

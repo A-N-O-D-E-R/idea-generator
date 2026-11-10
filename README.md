@@ -21,7 +21,26 @@ pnpm frontend   # http://localhost:5173, proxies /api to the backend
 Needs Docker, Java 25 (scripts use `~/.sdkman/candidates/java/25.0.2-oracle`), Node 20.19+, pnpm.
 Vite stays on 7: Vite 8's native bundler needs AVX2.
 
-The server listens on 127.0.0.1 only. There is no login and API keys pass through it: **do not expose it** as is.
+### Two modes (`IDEAGEN_AUTH`)
+
+- **`none`** (default): the local single-user tool, one implicit account. No login, so the server refuses to start unless
+  it listens on a loopback address, and it only answers requests addressed to `localhost`/`127.0.0.1` (against DNS rebinding).
+  Workspace filing, repo scan, project folders and *Show in Finder* work as before.
+- **`oauth`**: a shared server. Sign in with GitHub or Google; each login is its own account with its own boards, ideas,
+  templates, settings and encrypted API keys. No environment keys, no local folders: projects are written under
+  `IDEAGEN_DATA_DIR/tenants/<id>/projects/` and downloaded as a zip. See `docs/MULTI-USER.md` and `backend/README.md`.
+
+```bash
+# oauth, once: a keyset for the stored API keys (keep it secret, back it up)
+java -jar backend/target/idea-generator-0.1.0.jar --generate-keyset=/srv/ideagen/keyset.json
+IDEAGEN_AUTH=oauth IDEAGEN_KEYSET_FILE=/srv/ideagen/keyset.json IDEAGEN_DATA_DIR=/srv/ideagen/data HOST=0.0.0.0 \
+  GITHUB_CLIENT_ID=… GITHUB_CLIENT_SECRET=… GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… \
+  SPRING_DATASOURCE_URL=jdbc:postgresql://db/ideagen SPRING_DATASOURCE_USERNAME=… SPRING_DATASOURCE_PASSWORD=… \
+  SERVER_FORWARD_HEADERS_STRATEGY=native java -jar backend/target/idea-generator-0.1.0.jar   # behind a TLS proxy
+```
+
+App settings (keys included) are stored on the server per account; keys are encrypted with Tink and never sent back to the
+browser. Keys left in `localStorage` by an older version are handed over once and removed.
 
 ## Additions over upstream
 
@@ -45,6 +64,6 @@ The server listens on 127.0.0.1 only. There is no login and API keys pass throug
   `1 - d/0.7` over ideas within distance 0.7, where `d = 1 - Jaccard` of the judge's keywords. Near-copies share their fitness,
   a lone niche keeps its own. Off = upstream selection. Code: `Evolution.sharedFitness`.
 - **Hand-off to AI Scientist.** With *App settings › AI Scientist* (address + personal `ais_…` key from
-  `perso/ai-scientist`, kept in memory only; env fallback `AI_SCIENTIST_API_KEY`), the idea panel gets *To AI Scientist*:
+  `perso/ai-scientist`, stored encrypted like the provider keys; env fallback `AI_SCIENTIST_API_KEY` in `none` mode only), the idea panel gets *To AI Scientist*:
   it submits `POST /v1/ideations` with a topic built from the idea (Title, Keywords, TL;DR, Abstract; no LLM call here),
   `maxGenerations` 3 and a $2 budget on the ai-scientist account. Experiment runs are started there. Code: `Scientist.java`.
