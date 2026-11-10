@@ -83,7 +83,7 @@ export function BoardSettings() {
       title, goal,
       config: {
         lang: c.lang, flowName: c.flowName, flow: c.flow,
-        judgeGuidance: c.judgeGuidance, autoProjectOnGold: c.autoProjectOnGold,
+        judgeGuidance: c.judgeGuidance, autoProjectOnGold: c.autoProjectOnGold, diversity: c.diversity,
         researchers: c.researchers,
         mode: c.mode, autopilotSeconds: Number(c.autopilotSeconds), rate: { stepsPerHour: Number(c.rate.stepsPerHour), usdPerDay: Number(c.rate.usdPerDay) },
         models: Object.fromEntries(ROLES.map((r) => [r, c.models?.[r] ?? ''])),
@@ -163,6 +163,7 @@ export function BoardSettings() {
             <Input type="number" min={0} step={0.1} value={c.rate.usdPerDay} onChange={(e) => set({ rate: { ...c.rate, usdPerDay: num(e.target.value) } })} />
           </Field>
         </div>
+        <Check checked={c.diversity} onChange={(v) => set({ diversity: v })}>{t('diversity')}</Check>
         <small className="text-muted-foreground">{t('rateNote')}</small>
       </Fieldset>
       <Fieldset legend={t('models')}>

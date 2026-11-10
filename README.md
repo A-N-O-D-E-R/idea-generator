@@ -35,3 +35,7 @@ The server listens on 127.0.0.1 only. There is no login and API keys pass throug
   ideas head to head with the board's judge model, twice with the order swapped; answers that disagree are a draw (against
   position bias). Elo starts at 1000, K = 32; the fewest-duelled ideas are picked first. Elo is shown, not yet used by evolution.
   `POST /api/boards/{id}/duel`. Code: `backend/.../Elo.java`.
+- **Diversity (fitness sharing).** LLM ideation converges on one family. With *Board settings › Autopilot › Keep several idea
+  families alive* (on by default), the autopilot divides each idea's fitness by how crowded its niche is: the sum of
+  `1 - d/0.7` over ideas within distance 0.7, where `d = 1 - Jaccard` of the judge's keywords. Near-copies share their fitness,
+  a lone niche keeps its own. Off = upstream selection. Code: `Evolution.sharedFitness`.

@@ -65,27 +65,68 @@ public final class Evolution {
         return out;
     }
 
-    private static Idea tournament(List<Idea> pool, int k, DoubleSupplier rng) {
+    private static Idea tournament(List<Idea> pool, int k, DoubleSupplier rng, Map<Long, Double> fit) {
         Idea best = null;
         for (int i = 0; i < k; i++) {
             Idea c = pool.get((int) Math.floor(rng.getAsDouble() * pool.size()));
-            if (best == null || Score.fitness(c) > Score.fitness(best)) best = c;
+            if (best == null || fit.get(c.id()) > fit.get(best.id())) best = c;
         }
         return best;
     }
 
+    /** Niche radius for fitness sharing: keyword sets closer than this (1 - Jaccard) share their fitness. */
+    public static final double SHARING_RADIUS = 0.7;
+
+    /** 1 - Jaccard of the judge's keywords; an idea without keywords is far from everything. */
+    public static double distance(Idea a, Idea b) {
+        if (a.keywords().isEmpty() || b.keywords().isEmpty()) return a.id() == b.id() ? 0 : 1;
+        Set<String> union = new HashSet<>(a.keywords());
+        union.addAll(b.keywords());
+        long both = a.keywords().stream().distinct().filter(b.keywords()::contains).count();
+        return 1 - (double) both / union.size();
+    }
+
+    /**
+     * Fitness sharing (Goldberg & Richardson): an idea's fitness divided by how
+     * crowded its niche is, sum of (1 - d/radius) over ideas within the radius,
+     * itself included. A big family of near-copies breeds less, a lone niche
+     * more. radius 0 = plain fitness (upstream behaviour).
+     */
+    public static Map<Long, Double> sharedFitness(List<Idea> pool, double radius) {
+        Map<Long, Double> out = new HashMap<>();
+        for (Idea i : pool) {
+            double niche = 0;
+            if (radius > 0) for (Idea j : pool) {
+                double d = distance(i, j);
+                if (d < radius) niche += 1 - d / radius;
+            }
+            out.put(i.id(), Score.fitness(i) / Math.max(1, niche));
+        }
+        return out;
+    }
+
     public static Move nextMove(List<Idea> ideas, List<Edge> edges, Set<Long> busy) {
-        return nextMove(ideas, edges, Math::random, busy, Set.of(), 0.2, 3);
+        return nextMove(ideas, edges, busy, false);
+    }
+
+    public static Move nextMove(List<Idea> ideas, List<Edge> edges, Set<Long> busy, boolean diversity) {
+        return nextMove(ideas, edges, Math::random, busy, Set.of(), 0.2, 3, diversity ? SHARING_RADIUS : 0);
+    }
+
+    public static Move nextMove(List<Idea> ideas, List<Edge> edges, DoubleSupplier rng, Set<Long> busy,
+                                Set<String> inFlight, double mutationRate, int k) {
+        return nextMove(ideas, edges, rng, busy, inFlight, mutationRate, k, 0);
     }
 
     /** @return a combine, an expand, or null when there is nothing to do. */
     public static Move nextMove(List<Idea> ideas, List<Edge> edges, DoubleSupplier rng, Set<Long> busy,
-                                Set<String> inFlight, double mutationRate, int k) {
+                                Set<String> inFlight, double mutationRate, int k, double sharingRadius) {
         List<Idea> pool = population(ideas).stream().filter(i -> !busy.contains(i.id())).toList();
+        Map<Long, Double> fit = sharedFitness(pool, sharingRadius);
         Set<Long> expanded = expandedIds(ideas, edges);
         Set<String> used = usedPairs(ideas, edges);
         Idea bestUnexpanded = pool.stream()
-                .sorted(Comparator.comparing(Score::fitness).reversed())
+                .sorted(Comparator.comparing((Idea i) -> fit.get(i.id())).reversed())
                 .filter(i -> !expanded.contains(i.id()))
                 .findFirst().orElse(null);
 
@@ -94,9 +135,9 @@ public final class Evolution {
         }
         if (pool.size() >= 2) {
             for (int attempt = 0; attempt < 40; attempt++) {
-                Idea a = tournament(pool, k, rng);
+                Idea a = tournament(pool, k, rng, fit);
                 List<Idea> rest = pool.stream().filter(i -> i.id() != a.id()).toList();
-                Idea b = tournament(rest, k, rng);
+                Idea b = tournament(rest, k, rng, fit);
                 String key = pairKey(a.id(), b.id());
                 if (used.contains(key) || inFlight.contains(key)) continue;
                 return new Combine(a, b);

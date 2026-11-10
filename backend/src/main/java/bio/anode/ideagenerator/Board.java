@@ -45,6 +45,8 @@ public record Board(
             int autopilotSeconds,
             Rate rate,
             boolean autoProjectOnGold,
+            /* fitness sharing on judge keywords, so evolution keeps several families alive (not in upstream) */
+            boolean diversity,
             /* per-role "provider:model" overrides; empty = the app-wide setting */
             Map<String, String> models) {}
 
@@ -77,7 +79,7 @@ public record Board(
     public static Config defaultConfig(Template t) {
         return new Config(t.name(), new Flow(t.system(), t.expand(), t.combine()), "",
                 new Researchers(new Researcher(true, ""), new Researcher(true, "")),
-                "sv", "manual", 10, new Rate(60, 1), true, new LinkedHashMap<>());
+                "sv", "manual", 10, new Rate(60, 1), true, true, new LinkedHashMap<>());
     }
 
     private static String s(JsonNode v, int max, String fallback) {
@@ -130,6 +132,7 @@ public record Board(
                         Double.isFinite(sph) ? (int) Math.min(3600, Math.max(1, Math.round(sph))) : base.rate().stepsPerHour(),
                         Double.isFinite(usd) ? Math.min(1000, Math.max(0, Math.round(usd * 100) / 100.0)) : base.rate().usdPerDay()),
                 b(r.path("autoProjectOnGold"), base.autoProjectOnGold()),
+                b(r.path("diversity"), base.diversity()),
                 models);
     }
 }

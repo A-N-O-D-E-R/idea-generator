@@ -589,7 +589,7 @@ public class Engine {
             judgeAll(unjudged);
             return new Step("judge", null, unjudged);
         }
-        Evolution.Move move = Evolution.nextMove(ideas, repo.listEdges(boardId), judging);
+        Evolution.Move move = Evolution.nextMove(ideas, repo.listEdges(boardId), judging, mustBoard(boardId).config().diversity());
         return switch (move) {
             case null -> new Step("idle", "nothing_to_do", null);
             case Evolution.Expand e -> {

@@ -47,6 +47,8 @@ export type BoardConfig = {
   autopilotSeconds: number
   rate: { stepsPerHour: number; usdPerDay: number }
   autoProjectOnGold: boolean
+  /** Fitness sharing on judge keywords: evolution keeps several families alive */
+  diversity: boolean
   models: Partial<Record<Role, string>>
 }
 
