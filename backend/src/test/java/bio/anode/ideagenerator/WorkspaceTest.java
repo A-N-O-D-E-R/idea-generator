@@ -100,4 +100,46 @@ class WorkspaceTest {
         var m = Workspace.match(r -> { throw new AssertionError("no call"); }, "m", brief("x"), gold(), List.of());
         assertSame(Workspace.Match.NONE, m.value());
     }
+
+    @Test
+    void scansReposOneLevelDeepWithTheirReadmeProse(@TempDir Path code) throws Exception {
+        Files.createDirectories(code.resolve("perso/ai-scientist"));
+        Files.writeString(code.resolve("perso/ai-scientist/README.md"),
+                "# AI Scientist\n\n[![badge](x)](y)\n![logo](l.png)\n<p align=center>x</p>\nREST port of the pipeline.\n```bash\nmvn\n```\n");
+        Files.createDirectories(code.resolve("perso/empty"));
+        Files.createDirectories(code.resolve("perso/.git"));
+        List<Workspace.Repo> repos = Workspace.scanRepos(code.resolve("perso") + ", /does/not/exist,\nrelative/path");
+        assertEquals(List.of(
+                new Workspace.Repo(code.resolve("perso/ai-scientist").toString(), "AI Scientist REST port of the pipeline."),
+                new Workspace.Repo(code.resolve("perso/empty").toString(), "")), repos);
+    }
+
+    @Test
+    void reposAndPapersOnlySurviveIfTheyWereShown(@TempDir Path ws) throws Exception {
+        Files.writeString(ws.resolve("INDEX.md"), INDEX);
+        var repos = List.of(new Workspace.Repo("/code/vto", "Virtual try-on"));
+        var papers = List.of(new Leads.Paper("2601.7", "Singing furniture", "Benches that sing.", "2026-01-02", 3));
+        var m = Workspace.match(answering("""
+                {"duplicateOf":"","related":[],
+                 "repos":[{"path":"/code/vto","why":"audio pipeline"},{"path":"/code/made-up","why":"x"}],
+                 "papers":[{"id":"2601.7","why":"does benches, not parks"},{"id":"9999.9","why":"x"}]}"""),
+                "m", brief("singing-bench"), gold(), List.of(), repos, papers).value();
+        assertEquals(List.of(new Workspace.RepoHit("/code/vto", "audio pipeline")), m.repos());
+        assertEquals(1, m.papers().size());
+        Workspace.file(ws.toString(), brief("singing-bench"), gold(), "", List.of(), "/p", "2026-11-10", m);
+        String pitch = Files.readString(ws.resolve("ideas/singing-bench/PITCH.md"));
+        assertTrue(pitch.contains("## Prior work found (unverified)"));
+        assertTrue(pitch.contains("- [Singing furniture](https://huggingface.co/papers/2601.7) (2026) — does benches, not parks"));
+        String assets = Files.readString(ws.resolve("ideas/singing-bench/EXISTING-ASSETS.md"));
+        assertTrue(assets.contains("| `/code/vto` | audio pipeline |"));
+        assertTrue(assets.contains("Check who owns each repo"));
+    }
+
+    @Test
+    void noReposNoPapersNoExtraFiles(@TempDir Path ws) throws Exception {
+        Files.writeString(ws.resolve("INDEX.md"), INDEX);
+        Workspace.file(ws.toString(), brief("singing-bench"), gold(), "", List.of(), "/p", "2026-11-10", Workspace.Match.NONE);
+        assertFalse(Files.exists(ws.resolve("ideas/singing-bench/EXISTING-ASSETS.md")));
+        assertFalse(Files.readString(ws.resolve("ideas/singing-bench/PITCH.md")).contains("Prior work"));
+    }
 }

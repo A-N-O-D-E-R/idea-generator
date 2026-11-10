@@ -147,6 +147,8 @@ export type AppSettings = {
   /** perso/ai-scientist: base URL and personal API key (ais_...); '' = off */
   scientistUrl: string
   scientistKey: string
+  /** Folders whose sub-folders are code repos (comma or newline separated), checked before filing */
+  reposRoots: string
 }
 
 export type Dashboard = {
@@ -236,4 +238,8 @@ export type WorkspaceResult = {
   workspaceDuplicateOf?: string
   /** Existing ideas it was linked to, both ways. */
   workspaceRelated?: string[]
+  /** Repos with reusable work, written to EXISTING-ASSETS.md */
+  workspaceRepos?: string[]
+  /** Papers kept as prior work in PITCH.md */
+  workspacePapers?: number
 }

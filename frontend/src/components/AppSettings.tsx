@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/api'
 import { errorText, t } from '@/i18n'
 import { DEFAULTS, PROVIDER_IDS, ROLES, saveSettings } from '@/settings'
@@ -53,6 +54,7 @@ export function AppSettings() {
     out.workspaceRoot = out.workspaceRoot.trim()
     out.scientistUrl = out.scientistUrl.trim().replace(/\/+$/, '')
     out.scientistKey = out.scientistKey.trim()
+    out.reposRoots = out.reposRoots.trim()
     out.maxUsdPerDay = Number(budget)
     S.settings = out
     S.providers = await saveSettings(out)
@@ -151,6 +153,9 @@ export function AppSettings() {
         </Field>
         <Field label={t('workspaceRoot')} note={t('workspaceNote')}>
           <Input value={s.workspaceRoot} placeholder="~/Documents/Code/Idea" onChange={(e) => setS({ ...s, workspaceRoot: e.target.value })} />
+        </Field>
+        <Field label={t('reposRoots')} note={t('reposNote')}>
+          <Textarea rows={2} value={s.reposRoots} placeholder="~/Documents/Code/perso" onChange={(e) => setS({ ...s, reposRoots: e.target.value })} />
         </Field>
       </Fieldset>
       <Fieldset legend="AI Scientist">

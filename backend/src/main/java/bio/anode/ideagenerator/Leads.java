@@ -165,6 +165,22 @@ public final class Leads {
         }
     }
 
+    /** Hugging Face paper search for one query, any date: prior work for a single idea. */
+    public static List<Paper> searchPapers(String query) {
+        return searchPapers(query, Leads::hfGet);
+    }
+
+    public static List<Paper> searchPapers(String query, Function<String, String> fetch) {
+        String q = Js.trim(query);
+        if (q.isEmpty()) return List.of();
+        try {
+            return Js.arr(Js.parse(fetch.apply("https://huggingface.co/api/papers/search?q=" + encode(Js.cut(q, 200)) + "&limit=10")))
+                    .stream().map(Leads::toPaper).filter(Objects::nonNull).toList();
+        } catch (RuntimeException e) {
+            return List.of(); // prior work is a bonus: no search, no section
+        }
+    }
+
     public static List<Paper> fetchPapers(String goal) {
         return fetchPapers(goal, Leads::hfGet);
     }

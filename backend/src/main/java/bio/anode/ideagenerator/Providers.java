@@ -77,7 +77,9 @@ public final class Providers {
                               /* Idea workspace (INDEX.md + ideas/<slug>/) that projects are also filed into; "" = off */
                               String workspaceRoot,
                               /* perso/ai-scientist: base URL and personal API key (ais_...); "" = off. Memory only, like the other keys. */
-                              String scientistUrl, String scientistKey) {
+                              String scientistUrl, String scientistKey,
+                              /* folders whose sub-folders are code repos, comma or newline separated; checked before filing */
+                              String reposRoots) {
 
         static final String SONNET = "openrouter:anthropic/claude-sonnet-5.5";
 
@@ -91,19 +93,23 @@ public final class Providers {
             // Sonnet 5.5: calibrated judge, idiomatic Swedish. Grok: the only route that can search X.
             Map<String, String> models = new LinkedHashMap<>();
             for (String r : ROLES) models.put(r, r.equals("x") ? "openrouter:x-ai/grok-4.3" : SONNET);
-            return new AppSettings(new LinkedHashMap<>(), baseUrls, models, "~/Projekt/idea-projects", 5, "", "", "");
+            return new AppSettings(new LinkedHashMap<>(), baseUrls, models, "~/Projekt/idea-projects", 5, "", "", "", "");
         }
 
         public AppSettings withProjectsRoot(String root) {
-            return new AppSettings(keys, baseUrls, models, root, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey);
+            return new AppSettings(keys, baseUrls, models, root, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey, reposRoots);
         }
 
         public AppSettings withWorkspaceRoot(String root) {
-            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, root, scientistUrl, scientistKey);
+            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, root, scientistUrl, scientistKey, reposRoots);
         }
 
         public AppSettings withScientist(String url, String key) {
-            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, url, key);
+            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, url, key, reposRoots);
+        }
+
+        public AppSettings withReposRoots(String roots) {
+            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey, roots);
         }
     }
 
@@ -169,7 +175,8 @@ public final class Providers {
                 Double.isFinite(max) && max >= 0 ? Math.min(1000, max) : d.maxUsdPerDay(),
                 workspace.matches("^(~/|/).*") ? workspace : d.workspaceRoot(),
                 Js.str(r.path("scientistUrl"), 500).matches("^https?://.*") ? Js.str(r.path("scientistUrl"), 500).replaceAll("/+$", "") : d.scientistUrl(),
-                Js.str(r.path("scientistKey"), 500));
+                Js.str(r.path("scientistKey"), 500),
+                Js.str(r.path("reposRoots"), 2000));
     }
 
     private static String nonEmpty(String s) {

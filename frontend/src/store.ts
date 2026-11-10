@@ -376,7 +376,9 @@ function notifyWorkspace(r: WorkspaceResult) {
   else if (r.workspaceDuplicateOf) notify(t('workspaceDuplicate', { s: r.workspaceDuplicateOf }), 'info', 9000)
   else if (r.workspace) {
     const related = r.workspaceRelated?.length ? ' ' + t('workspaceRelated', { s: r.workspaceRelated.join(', ') }) : ''
-    notify(t(r.workspaceExisted ? 'workspaceExisted' : 'workspaceFiled', { p: r.workspace }) + related, 'good', 9000)
+    const repos = r.workspaceRepos?.length ? ' ' + t('workspaceRepos', { s: r.workspaceRepos.map((p) => p.split('/').pop()).join(', ') }) : ''
+    const papers = r.workspacePapers ? ' ' + t('workspacePapers', { n: r.workspacePapers }) : ''
+    notify(t(r.workspaceExisted ? 'workspaceExisted' : 'workspaceFiled', { p: r.workspace }) + related + repos + papers, 'good', 9000)
   }
 }
 

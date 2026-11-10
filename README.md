@@ -31,6 +31,10 @@ The server listens on 127.0.0.1 only. There is no login and API keys pass throug
 - **Duplicate check before filing.** One call to the board's `brief` model compares the brief with the `INDEX.md` rows.
   A duplicate (same problem, same mechanism) is not filed; the toast names the existing idea. Up to 4 related ideas are linked
   both ways in their `LINK.md`. Slugs the model invents are dropped. An empty index costs no call.
+  The same call also gets your code repos (*App settings › Code folders*: sub-folders of each folder, first prose of their
+  README, max 150) and up to 10 Hugging Face papers found for the brief. Repos with reusable work go to `EXISTING-ASSETS.md`,
+  real prior work to a *Prior work found (unverified)* section of `PITCH.md`. Paths and paper ids it wasn't shown are dropped.
+  Note: the paper search sends the brief's name and one-liner to huggingface.co (as the research scout does with the goal).
 - **Elo ranking.** The 1–5 rubric saturates among strong ideas, so *Duel* (board overview) compares two of the 8 best judged
   ideas head to head with the board's judge model, twice with the order swapped; answers that disagree are a draw (against
   position bias). Elo starts at 1000, K = 32; the fewest-duelled ideas are picked first. Elo is shown, not yet used by evolution.

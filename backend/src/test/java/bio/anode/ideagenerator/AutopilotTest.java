@@ -157,7 +157,7 @@ class AutopilotTest {
             };
             return new ChatResult(Js.parse(value), 0);
         };
-        Engine engine = new Engine(repo, AppSettings::defaults, new Engine.Io(chat, u -> null, g -> List.of(), p -> {}, false));
+        Engine engine = new Engine(repo, AppSettings::defaults, new Engine.Io(chat, u -> null, g -> List.of(), p -> {}, false, q -> List.of()));
         Board board = repo.createBoard("B", null);
         assertEquals(new Engine.Step("idle", "empty", null), engine.autoStep(board.id()));
         repo.insertIdea(new Repo.NewIdea(board.id(), "Frö", "", "seed", null, 0, 0, 0));

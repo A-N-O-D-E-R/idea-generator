@@ -87,6 +87,7 @@ class ApiTest {
                     .collect(Collectors.joining(",")) + "]}";
             case "judgement" -> "{\"reason\":\"Stark mekanism, oklar kund.\",\"originality\":" + judgeScores[0] + ",\"feasibility\":"
                     + judgeScores[1] + ",\"impact\":" + judgeScores[2] + ",\"keywords\":" + Js.stringify(judgeKeywords) + "}";
+            case "workspace_match" -> "{\"duplicateOf\":\"\",\"related\":[],\"repos\":[],\"papers\":[{\"id\":\"2601.7\",\"why\":\"Närliggande.\"}]}";
             // The idea titled "Vinnare" wins wherever it is shown.
             case "duel" -> "{\"winner\":\"" + (r.user().indexOf("Vinnare") < r.user().indexOf("Idea B:") ? "A" : "B") + "\",\"reason\":\"Tydligare.\"}";
             case "summary" -> """
@@ -125,7 +126,8 @@ class ApiTest {
                     },
                     goal -> List.of(new Leads.Paper("2610.1", "Spatial audio", "sum", "2026-10-30", 9),
                             new Leads.Paper("2610.2", "Other", "sum", "2026-10-29", 1)),
-                    revealed::add, false);
+                    revealed::add, false,
+                    q -> List.of(new Leads.Paper("2601.7", "Singing furniture", "Benches that sing.", "2026-01-02", 3)));
         }
     }
 
@@ -318,6 +320,8 @@ class ApiTest {
         assertTrue(has(Files.readString(Path.of(gold.projectPath(), ".gitignore")), "^vault/$"));
         assertTrue(Files.readString(workspace.resolve("ideas/sjungande-bank/PITCH.md")).startsWith("# Sjungande bänk"), "gold is filed into the workspace");
         assertTrue(Files.readString(workspace.resolve("INDEX.md")).contains("[sjungande-bank](ideas/sjungande-bank/PITCH.md)"));
+        assertTrue(Files.readString(workspace.resolve("ideas/sjungande-bank/PITCH.md")).contains("(https://huggingface.co/papers/2601.7) (2026) — Närliggande."),
+                "prior work from the paper search");
 
         assertTrue(api("POST", "/api/ideas/" + id(s) + "/project", Map.of()).data().path("existed").asBoolean(), "one project per idea");
         api("POST", "/api/ideas/" + id(s) + "/reveal", Map.of());

@@ -84,7 +84,7 @@ class ProvidersTest {
         AppSettings d = AppSettings.defaults();
         Map<String, String> b = new LinkedHashMap<>(d.baseUrls());
         b.putAll(baseUrls);
-        return new AppSettings(new LinkedHashMap<>(keys), b, d.models(), d.projectsRoot(), d.maxUsdPerDay(), d.workspaceRoot(), d.scientistUrl(), d.scientistKey());
+        return new AppSettings(new LinkedHashMap<>(keys), b, d.models(), d.projectsRoot(), d.maxUsdPerDay(), d.workspaceRoot(), d.scientistUrl(), d.scientistKey(), d.reposRoots());
     }
 
     static Map<String, Object> oaiAnswer(String content) {

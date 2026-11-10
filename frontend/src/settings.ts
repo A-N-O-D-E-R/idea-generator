@@ -19,6 +19,7 @@ export const DEFAULTS: AppSettings = {
   workspaceRoot: '',
   scientistUrl: '',
   scientistKey: '',
+  reposRoots: '',
 }
 
 export function loadSettings(): AppSettings {
@@ -37,6 +38,7 @@ export function loadSettings(): AppSettings {
     workspaceRoot: saved.workspaceRoot ?? DEFAULTS.workspaceRoot,
     scientistUrl: saved.scientistUrl ?? DEFAULTS.scientistUrl,
     scientistKey: saved.scientistKey ?? DEFAULTS.scientistKey,
+    reposRoots: saved.reposRoots ?? DEFAULTS.reposRoots,
   }
 }
 
