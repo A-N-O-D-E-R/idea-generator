@@ -73,7 +73,9 @@ public final class Providers {
     public static final List<String> ROLES = List.of("distill", "expand", "combine", "judge", "summary", "research", "x", "brief");
 
     public record AppSettings(Map<String, String> keys, Map<String, String> baseUrls, Map<String, String> models,
-                              String projectsRoot, double maxUsdPerDay) {
+                              String projectsRoot, double maxUsdPerDay,
+                              /* Idea workspace (INDEX.md + ideas/<slug>/) that projects are also filed into; "" = off */
+                              String workspaceRoot) {
 
         static final String SONNET = "openrouter:anthropic/claude-sonnet-5.5";
 
@@ -87,11 +89,15 @@ public final class Providers {
             // Sonnet 5.5: calibrated judge, idiomatic Swedish. Grok: the only route that can search X.
             Map<String, String> models = new LinkedHashMap<>();
             for (String r : ROLES) models.put(r, r.equals("x") ? "openrouter:x-ai/grok-4.3" : SONNET);
-            return new AppSettings(new LinkedHashMap<>(), baseUrls, models, "~/Projekt/idea-projects", 5);
+            return new AppSettings(new LinkedHashMap<>(), baseUrls, models, "~/Projekt/idea-projects", 5, "");
         }
 
         public AppSettings withProjectsRoot(String root) {
-            return new AppSettings(keys, baseUrls, models, root, maxUsdPerDay);
+            return new AppSettings(keys, baseUrls, models, root, maxUsdPerDay, workspaceRoot);
+        }
+
+        public AppSettings withWorkspaceRoot(String root) {
+            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, root);
         }
     }
 
@@ -151,9 +157,11 @@ public final class Providers {
         }
         String root = Js.str(r.path("projectsRoot"), 500);
         double max = Js.num(r.path("maxUsdPerDay"));
+        String workspace = Js.str(r.path("workspaceRoot"), 500);
         return new AppSettings(keys, baseUrls, models,
                 root.matches("^(~/|/).*") ? root : d.projectsRoot(),
-                Double.isFinite(max) && max >= 0 ? Math.min(1000, max) : d.maxUsdPerDay());
+                Double.isFinite(max) && max >= 0 ? Math.min(1000, max) : d.maxUsdPerDay(),
+                workspace.matches("^(~/|/).*") ? workspace : d.workspaceRoot());
     }
 
     private static String nonEmpty(String s) {

@@ -16,6 +16,7 @@ export const DEFAULTS: AppSettings = {
   models: { distill: SONNET, expand: SONNET, combine: SONNET, judge: SONNET, summary: SONNET, research: SONNET, x: 'openrouter:x-ai/grok-4.3', brief: SONNET },
   projectsRoot: '~/Projekt/idea-projects',
   maxUsdPerDay: 5,
+  workspaceRoot: '',
 }
 
 export function loadSettings(): AppSettings {
@@ -31,6 +32,7 @@ export function loadSettings(): AppSettings {
     models: { ...DEFAULTS.models, ...saved.models },
     projectsRoot: saved.projectsRoot || DEFAULTS.projectsRoot,
     maxUsdPerDay: Number.isFinite(saved.maxUsdPerDay) ? saved.maxUsdPerDay! : DEFAULTS.maxUsdPerDay,
+    workspaceRoot: saved.workspaceRoot ?? DEFAULTS.workspaceRoot,
   }
 }
 

@@ -137,6 +137,8 @@ export type AppSettings = {
   models: Record<Role, string>
   projectsRoot: string
   maxUsdPerDay: number
+  /** Idea workspace (INDEX.md + ideas/) that projects are also filed into; '' = off */
+  workspaceRoot: string
 }
 
 export type Dashboard = {
@@ -213,6 +215,9 @@ export type BoardEvent =
   | { type: 'board'; board: Board }
   | { type: 'leads'; source: LeadSource; leads: Lead[] }
   | { type: 'autopilot'; status: AutopilotStatus }
-  | { type: 'project'; ideaId: number; path: string; byJudge?: boolean }
+  | { type: 'project'; ideaId: number; path: string; byJudge?: boolean } & WorkspaceResult
   | { type: 'spinoff'; ideaId: number; boardId: number; title: string }
   | { type: 'error'; code: string; message: string; ideaId?: number }
+
+/** Filing into the idea workspace, added to project results when a workspace is set. */
+export type WorkspaceResult = { workspace?: string; workspaceExisted?: boolean; workspaceError?: string }

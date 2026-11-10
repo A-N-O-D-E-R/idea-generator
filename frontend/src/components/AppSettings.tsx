@@ -50,6 +50,7 @@ export function AppSettings() {
     }
     for (const r of ROLES) out.models[r] = out.models[r].trim() || DEFAULTS.models[r]
     out.projectsRoot = out.projectsRoot.trim() || DEFAULTS.projectsRoot
+    out.workspaceRoot = out.workspaceRoot.trim()
     out.maxUsdPerDay = Number(budget)
     S.settings = out
     S.providers = await saveSettings(out)
@@ -145,6 +146,9 @@ export function AppSettings() {
       <Fieldset legend="Claude Code">
         <Field label={t('projectsRoot')}>
           <Input value={s.projectsRoot} onChange={(e) => setS({ ...s, projectsRoot: e.target.value })} />
+        </Field>
+        <Field label={t('workspaceRoot')} note={t('workspaceNote')}>
+          <Input value={s.workspaceRoot} placeholder="~/Documents/Code/Idea" onChange={(e) => setS({ ...s, workspaceRoot: e.target.value })} />
         </Field>
       </Fieldset>
       <Fieldset legend={t('autopilot')}>

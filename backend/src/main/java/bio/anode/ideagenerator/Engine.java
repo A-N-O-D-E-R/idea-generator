@@ -11,6 +11,7 @@ import bio.anode.ideagenerator.Providers.ProviderError;
 import bio.anode.ideagenerator.Repo.Lead;
 import bio.anode.ideagenerator.Repo.NewIdea;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -182,7 +183,19 @@ public class Engine {
         }
         Idea saved = repo.setProjectPath(idea.id(), path);
         emitIdeas(board.id(), List.of(saved));
-        return Js.obj("idea", saved, "path", path, "existed", false);
+        Map<String, Object> out = Js.obj("idea", saved, "path", path, "existed", false);
+        String workspace = settings.get().workspaceRoot();
+        if (!workspace.isEmpty()) {
+            // The project is made either way; filing into the workspace is a bonus that may fail on its own.
+            try {
+                Workspace.Filed f = Workspace.file(workspace, brief, saved, board.goal(), lineage, path, Js.utcToday());
+                out.put("workspace", f.path());
+                out.put("workspaceExisted", f.existed());
+            } catch (IOException | RuntimeException e) {
+                out.put("workspaceError", messageOf(e));
+            }
+        }
+        return out;
     }
 
     /** Judge one idea now: {idea, project?, projectError?}. */
@@ -203,7 +216,9 @@ public class Engine {
                     Map<String, Object> p = createProject(judged);
                     out.put("idea", p.get("idea"));
                     out.put("project", p.get("path"));
-                    bus.emit(board.id(), event("project", "ideaId", idea.id(), "path", p.get("path"), "byJudge", true));
+                    Map<String, Object> ev = event("project", "ideaId", idea.id(), "path", p.get("path"), "byJudge", true);
+                    for (String k : List.of("workspace", "workspaceExisted", "workspaceError")) if (p.containsKey(k)) ev.put(k, p.get(k));
+                    bus.emit(board.id(), ev);
                 } catch (RuntimeException e) {
                     out.put("projectError", messageOf(e));
                 }

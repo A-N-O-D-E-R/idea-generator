@@ -57,11 +57,14 @@ class ApiTest {
     static final List<String> revealed = new CopyOnWriteArrayList<>();
     static final Path projectsRoot;
     static final Path dbFile;
+    static final Path workspace;
 
     static {
         try {
             projectsRoot = Files.createTempDirectory("ideagen-projects-");
             dbFile = Files.createTempDirectory("ideagen-db-").resolve("test.db");
+            workspace = Files.createTempDirectory("ideagen-workspace-");
+            Files.writeString(workspace.resolve("INDEX.md"), "| Date | Slug | Title | Tags | Status | Summary |\n" + Workspace.TABLE_RULE + "\n");
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -134,7 +137,7 @@ class ApiTest {
     RuntimeSettings runtime;
 
     static AppSettings testSettings() {
-        return AppSettings.defaults().withProjectsRoot(projectsRoot.toString());
+        return AppSettings.defaults().withProjectsRoot(projectsRoot.toString()).withWorkspaceRoot(workspace.toString());
     }
 
     @BeforeEach
@@ -311,6 +314,8 @@ class ApiTest {
         assertTrue(claude.contains("14/15 🥇"));
         assertTrue(Files.exists(Path.of(gold.projectPath(), "vault", "Home.md")));
         assertTrue(has(Files.readString(Path.of(gold.projectPath(), ".gitignore")), "^vault/$"));
+        assertTrue(Files.readString(workspace.resolve("ideas/sjungande-bank/PITCH.md")).startsWith("# Sjungande bänk"), "gold is filed into the workspace");
+        assertTrue(Files.readString(workspace.resolve("INDEX.md")).contains("[sjungande-bank](ideas/sjungande-bank/PITCH.md)"));
 
         assertTrue(api("POST", "/api/ideas/" + id(s) + "/project", Map.of()).data().path("existed").asBoolean(), "one project per idea");
         api("POST", "/api/ideas/" + id(s) + "/reveal", Map.of());

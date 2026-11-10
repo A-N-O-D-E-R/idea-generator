@@ -21,3 +21,10 @@ Needs Java 25 (scripts use `~/.sdkman/candidates/java/25.0.2-oracle`), Node 20.1
 Vite stays on 7: Vite 8's native bundler needs AVX2.
 
 The server listens on 127.0.0.1 only. There is no login and API keys pass through it: **do not expose it** as is.
+
+## Additions over upstream
+
+- **Idea workspace filing.** Set *App settings › Idea workspace* to a folder that has an `INDEX.md` (e.g. `~/Documents/Code/Idea`).
+  Every Claude Code project, made by hand or by the judge on gold, is then also filed there as `ideas/<slug>/PITCH.md` + `LINK.md`,
+  with a `raw` row added at the top of the `INDEX.md` table. It reuses the project brief (no extra LLM call) and never overwrites:
+  a slug already in `ideas/` or in `INDEX.md` is left alone. Code: `backend/.../Workspace.java`.

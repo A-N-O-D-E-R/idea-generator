@@ -10,7 +10,7 @@ import { medal } from './lib/score'
 import { loadSettings, providersInUse, pushSettings } from './settings'
 import type {
   AppSettings, AutopilotStatus, Board, BoardData, BoardEvent, Edge, Idea, Lead, LeadSource,
-  ProvidersResponse, Spinoff, Template,
+  ProvidersResponse, Spinoff, Template, WorkspaceResult,
 } from './types'
 
 export const MEDAL_ICON = ['–', '🥉', '🥈', '🥇']
@@ -231,6 +231,7 @@ function onEvent(e: BoardEvent) {
       break
     case 'project':
       notify(t('projectCreated', { p: e.path }), 'good', 9000)
+      notifyWorkspace(e)
       break
     case 'spinoff':
       S.spinoffs.push({ ideaId: e.ideaId, boardId: e.boardId, title: e.title })
@@ -363,10 +364,16 @@ export async function deleteIdea(idea: Idea) {
 
 /** Throws on failure so the button can restore itself. */
 export async function makeProject(idea: Idea) {
-  const r = await api<{ idea: Idea; path: string }>('POST', `/api/ideas/${idea.id}/project`, {})
+  const r = await api<{ idea: Idea; path: string } & WorkspaceResult>('POST', `/api/ideas/${idea.id}/project`, {})
   upsertIdea(r.idea)
   notify(t('projectCreated', { p: r.path }), 'good', 9000)
+  notifyWorkspace(r)
   emit()
+}
+
+function notifyWorkspace(r: WorkspaceResult) {
+  if (r.workspaceError) notify(t('workspaceFailed', { e: r.workspaceError }), 'error', 9000)
+  else if (r.workspace) notify(t(r.workspaceExisted ? 'workspaceExisted' : 'workspaceFiled', { p: r.workspace }), 'good', 9000)
 }
 
 export const reveal = (id: number) => api('POST', `/api/ideas/${id}/reveal`, {}).catch(fail)
