@@ -30,6 +30,12 @@ public class Secrets {
     public Secrets(String keysetFile, boolean required) throws GeneralSecurityException, IOException {
         AeadConfig.register();
         KeysetHandle handle;
+        if (keysetFile != null && !keysetFile.isBlank() && !required && !Files.exists(Path.of(keysetFile))) {
+            // auth=none (e.g. docker-compose.yml): create the named keyset on first start. oauth stays strict, so a
+            // missing or swapped volume fails loudly instead of silently orphaning every stored key.
+            generate(Path.of(keysetFile));
+            log.info("Created keyset {} (keep it with the database: stored API keys need it)", keysetFile);
+        }
         if (keysetFile != null && !keysetFile.isBlank()) {
             handle = TinkJsonProtoKeysetFormat.parseKeyset(Files.readString(Path.of(keysetFile)), InsecureSecretKeyAccess.get());
         } else if (required) {

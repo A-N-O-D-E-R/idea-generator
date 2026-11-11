@@ -70,7 +70,7 @@ public final class Workspace {
 
     /**
      * Sub-folders of each root (comma or newline separated, absolute or ~), with the first prose of their README.
-     * ponytail: one level deep and README-only, add a deeper scan if repos hide in groups (e.g. Corporate/ATS/*).
+     * ponytail: one level deep and README-only, add a deeper scan if repos sit in group folders (e.g. org/team/*).
      */
     public static List<Repo> scanRepos(String roots) {
         List<Repo> out = new ArrayList<>();

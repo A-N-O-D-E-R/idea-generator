@@ -40,3 +40,13 @@ ideagen:
   # auth=oauth: who may sign in, as stable ids "github:<numeric id>,google:<sub>" (a refused sign-in logs its id).
   # Empty = open sign-up (logged as a warning at startup).
   allowed-logins: ${IDEAGEN_ALLOWED_LOGINS:}
+
+# API docs: /v3/api-docs (OpenAPI) and /swagger-ui.html. Only /api routes; "try it out" sends the CSRF header.
+springdoc:
+  paths-to-match: /api/**
+  api-docs.enabled: ${IDEAGEN_API_DOCS:true}
+  swagger-ui:
+    enabled: ${IDEAGEN_API_DOCS:true}
+    csrf.enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha

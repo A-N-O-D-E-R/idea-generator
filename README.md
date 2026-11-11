@@ -42,6 +42,25 @@ IDEAGEN_AUTH=oauth IDEAGEN_KEYSET_FILE=/srv/ideagen/keyset.json IDEAGEN_DATA_DIR
 App settings (keys included) are stored on the server per account; keys are encrypted with Tink and never sent back to the
 browser. Keys left in `localStorage` by an older version are handed over once and removed.
 
+## Docker
+
+```bash
+docker compose up -d          # app + Postgres, local single-user mode, http://127.0.0.1:8300
+```
+
+Image: `ghcr.io/a-n-o-d-e-r/idea-generator` (built by CI on every push to `master`: `latest`, `sha-<commit>`; tags `v1.2.3`
+give `1.2.3` and `1.2`). It defaults to `IDEAGEN_AUTH=oauth`; `docker-compose.yml` switches it to local mode and publishes the
+port on 127.0.0.1 only. For a shared server see [docs/MULTI-USER.md](docs/MULTI-USER.md) and the wiki.
+
+## API
+
+OpenAPI at `/v3/api-docs`, Swagger UI at **`/swagger-ui.html`** (writes send the CSRF header for you).
+Turn both off with `IDEAGEN_API_DOCS=false`.
+
+## Docs
+
+The [wiki](https://github.com/A-N-O-D-E-R/idea-generator/wiki) has the user guide with screenshots, configuration and deployment.
+
 ## Additions over upstream
 
 - **Idea workspace filing.** Set *App settings › Idea workspace* to a folder that has an `INDEX.md` (e.g. `~/Documents/Code/Idea`).

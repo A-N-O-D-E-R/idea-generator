@@ -458,6 +458,7 @@ public class Api {
     }
 
     /** Anything else under /api. */
+    @io.swagger.v3.oas.annotations.Hidden
     @RequestMapping("/**")
     Object noRoute(HttpServletRequest req) {
         throw new AppError(404, "not_found", "No route for " + req.getMethod() + " " + req.getRequestURI());

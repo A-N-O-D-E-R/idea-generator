@@ -662,4 +662,14 @@ class ApiTest {
                 "reveal is not switched off locally");
         engine.idle();
     }
+
+    @Test
+    @Order(18)
+    void theOpenApiDocIsServed() {
+        Res r = api("GET", "/v3/api-docs");
+        assertEquals(200, r.status());
+        assertEquals("Idea Generator API", r.data().path("info").path("title").asString());
+        assertTrue(r.data().path("paths").has("/api/boards/{id}/duel"));
+        assertFalse(r.data().path("paths").has("/api/**"), "the catch-all route is hidden");
+    }
 }

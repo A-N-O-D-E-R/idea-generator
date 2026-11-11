@@ -1,0 +1,36 @@
+# Local, single user (ideagen.auth=none): docker compose up -d, then open http://127.0.0.1:8300
+# The port is published on 127.0.0.1 only: there is no login in this mode, never change that mapping.
+# Shared server: set IDEAGEN_AUTH=oauth and the variables in docs/MULTI-USER.md instead (and drop the loopback override).
+services:
+  app:
+    image: ghcr.io/a-n-o-d-e-r/idea-generator:latest
+    build: .
+    depends_on:
+      db: {condition: service_healthy}
+    ports: ["127.0.0.1:8300:8300"]
+    environment:
+      IDEAGEN_AUTH: none
+      IDEAGEN_NONE_PUBLISHED_ON_LOOPBACK: "true"
+      # Created on first start in this mode; keep the app-data volume with the db-data one.
+      IDEAGEN_KEYSET_FILE: /data/keyset.json
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ideagen
+      SPRING_DATASOURCE_USERNAME: ideagen
+      SPRING_DATASOURCE_PASSWORD: ideagen
+    volumes:
+      - app-data:/data
+      # Optional: file gold ideas into your Idea workspace (set "Idea workspace" to /workspace in the app settings)
+      # - ~/Documents/Code/Idea:/workspace
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ideagen
+      POSTGRES_USER: ideagen
+      POSTGRES_PASSWORD: ideagen
+    volumes: [db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ideagen"]
+      interval: 5s
+      retries: 20
+volumes:
+  app-data:
+  db-data:
