@@ -1,6 +1,6 @@
 # Idea Generator
 
-Java port of [fltman/idea-generator-2](https://github.com/fltman/idea-generator-2) (MIT, see `LICENSE.upstream`):
+Java port of [fltman/idea-generator-2](https://github.com/fltman/idea-generator-2) (MIT, see `LICENSE.upstream`). MIT licensed too (`LICENSE`):
 an idea board where language models branch, cross and judge ideas, and an evolution autopilot breeds the best ones.
 
 | Folder | Stack |
