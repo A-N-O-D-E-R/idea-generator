@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Idégeneratorn: one dark theme, as upstream. */
+/* MUSE: one light theme, light, deep purple / bordeaux accents. */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -27,6 +27,14 @@
   --color-foreground: var(--foreground);
   --color-background: var(--background);
   /* Upstream extras. */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --color-subtle: var(--subtle);
   --color-track: var(--track);
   --color-selected: var(--selected);
@@ -45,34 +53,42 @@
 }
 
 :root {
-  color-scheme: dark;
-  --background: #0f1116;
-  --foreground: #eef0f4;
-  --card: #171a21;
-  --card-foreground: #eef0f4;
-  --popover: #171a21;
-  --popover-foreground: #eef0f4;
-  --primary: #3987e5;
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #2a0b1f;
+  --card: #ffffff;
+  --card-foreground: #2a0b1f;
+  --popover: #ffffff;
+  --popover-foreground: #2a0b1f;
+  --primary: #8f2358;
   --primary-foreground: #ffffff;
-  --secondary: #1e222b;
-  --secondary-foreground: #eef0f4;
-  --muted: #1e222b;
-  --muted-foreground: #8a91a0;
-  --accent: #262b36;
-  --accent-foreground: #eef0f4;
-  --destructive: #e66767;
-  --border: #2a2f3a;
-  --input: #2a2f3a;
-  --ring: #3987e5;
+  --secondary: #f4eaf0;
+  --secondary-foreground: #2a0b1f;
+  --muted: #f6eff3;
+  --muted-foreground: #7a6272;
+  --accent: #f0e1ea;
+  --accent-foreground: #2a0b1f;
+  --destructive: #c62828;
+  --border: #e6d5de;
+  --input: #e0cdd8;
+  --ring: #8f2358;
   --radius: 10px;
-  --subtle: #b9bfcb;
-  --track: #1f3350;
-  --selected: #1c2a40;
-  --gold: #f5c542;
+  --subtle: #5e4455;
+  --track: #ead3e0;
+  --selected: #f3e3ec;
+  --gold: #a8740a;
   --silver: #c9d1d9;
   --bronze: #cd7f32;
-  --good: #3fb68b;
-  --tip: #232835;
+  --good: #1f9d6f;
+  --tip: #fbf5f8;
+  --sidebar: #2a0b1f;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #c2457c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.12);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.2);
+  --sidebar-ring: #c2457c;
 }
 
 @layer base {

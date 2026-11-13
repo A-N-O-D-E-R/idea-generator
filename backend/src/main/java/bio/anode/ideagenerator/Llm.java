@@ -1,5 +1,8 @@
 package bio.anode.ideagenerator;
 
+import bio.anode.ideagenerator.model.Board;
+import bio.anode.ideagenerator.model.Idea;
+
 import bio.anode.ideagenerator.Providers.Chat;
 import bio.anode.ideagenerator.Providers.ChatRequest;
 import bio.anode.ideagenerator.Providers.ChatResult;
@@ -25,7 +28,7 @@ public final class Llm {
     public record Out<T>(T value, double costUsd) {}
 
     public record Pitch(String title, String pitch) {
-        static Pitch of(Idea i) {
+        public static Pitch of(Idea i) {
             return new Pitch(i.title(), i.pitch());
         }
     }

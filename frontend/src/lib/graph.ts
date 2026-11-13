@@ -31,10 +31,10 @@ type Drag =
   | { type: 'node'; id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean }
   | { type: 'pan'; sx: number; sy: number; cx: number; cy: number; moved: boolean };
 
-// Validated with the dataviz palette checks against the canvas background (#0f1116).
+// Validated with the dataviz palette checks against the canvas background (#ffffff).
 export const KIND_COLORS: Record<string, string> = { seed: '#3987e5', expand: '#199e70', combine: '#9085e9', guest: '#d55181' };
 export const MEDAL_COLORS: (string | null)[] = [null, '#cd7f32', '#c9d1d9', '#f5c542'];
-const BG = '#0f1116';
+const BG = '#ffffff';
 const TEXT = '#eef0f4';
 const FONT = 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 
@@ -377,7 +377,7 @@ export class Graph {
     // Dot grid, in world space, fading out when zoomed far out.
     const step = 48;
     if (step * k > 12) {
-      ctx.fillStyle = `rgba(255,255,255,${Math.min(0.07, (step * k - 12) / 300)})`;
+      ctx.fillStyle = `rgba(60,10,40,${Math.min(0.07, (step * k - 12) / 300)})`;
       const x0 = Math.floor((cam.x - w / 2 / k) / step) * step, x1 = cam.x + w / 2 / k;
       const y0 = Math.floor((cam.y - h / 2 / k) / step) * step, y1 = cam.y + h / 2 / k;
       for (let x = x0; x < x1; x += step) for (let y = y0; y < y1; y += step) {
@@ -401,7 +401,7 @@ export class Graph {
       ctx.beginPath();
       ctx.moveTo(s.x, s.y);
       ctx.quadraticCurveTo(cx, cy, t.x, t.y);
-      ctx.strokeStyle = lit ? KIND_COLORS[t.idea.kind] ?? '#fff' : focus ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.13)';
+      ctx.strokeStyle = lit ? KIND_COLORS[t.idea.kind] ?? '#fff' : focus ? 'rgba(60,10,40,0.06)' : 'rgba(60,10,40,0.2)';
       ctx.lineWidth = (lit ? 2.5 : 1.5) / Math.max(k, 0.4);
       ctx.stroke();
     }
@@ -412,7 +412,7 @@ export class Graph {
       ctx.beginPath();
       ctx.arc(g.x, g.y, 34 + pulse * 6, 0, Math.PI * 2);
       ctx.setLineDash([6, 8]);
-      ctx.strokeStyle = `rgba(255,255,255,${0.18 + pulse * 0.2})`;
+      ctx.strokeStyle = `rgba(60,10,40,${0.25 + pulse * 0.2})`;
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.setLineDash([]);
@@ -464,7 +464,7 @@ export class Graph {
     }
     const g = ctx.createRadialGradient(n.x - r * 0.35, n.y - r * 0.4, r * 0.1, n.x, n.y, r);
     g.addColorStop(0, color + 'cc');
-    g.addColorStop(1, '#151821');
+    g.addColorStop(1, '#1b0c16');
     ctx.beginPath();
     ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
     ctx.fillStyle = g;
@@ -487,7 +487,7 @@ export class Graph {
     if (this.selected === n.id || this.pick === n.id) {
       ctx.beginPath();
       ctx.arc(n.x, n.y, r + 9, 0, Math.PI * 2);
-      ctx.strokeStyle = this.pick === n.id ? KIND_COLORS.combine : '#ffffff';
+      ctx.strokeStyle = this.pick === n.id ? KIND_COLORS.combine : '#3b0d2a';
       ctx.lineWidth = 2.5;
       ctx.stroke();
     }
@@ -510,7 +510,7 @@ export class Graph {
       const p = 0.5 + 0.5 * Math.sin(now / 180);
       ctx.beginPath();
       ctx.arc(n.x, n.y, r + 4 + p * 8, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(255,255,255,${0.15 + p * 0.35})`;
+      ctx.strokeStyle = `rgba(60,10,40,${0.2 + p * 0.35})`;
       ctx.lineWidth = 2;
       ctx.stroke();
     }
@@ -535,7 +535,7 @@ export class Graph {
         const py = n.y + r - ph * 0.95;
         ctx.beginPath();
         ctx.roundRect(n.x - pw / 2, py - ph / 2, pw, ph, ph / 2);
-        ctx.fillStyle = m ? MEDAL_COLORS[m]! : '#2b303c';
+        ctx.fillStyle = m ? MEDAL_COLORS[m]! : '#3a2230';
         ctx.fill();
         ctx.fillStyle = m ? '#111' : '#d7dbe3';
         ctx.fillText(label, n.x, py + 0.5);

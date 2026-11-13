@@ -1,5 +1,7 @@
 package bio.anode.ideagenerator;
 
+import bio.anode.ideagenerator.model.Idea;
+
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
@@ -31,7 +33,7 @@ public final class Providers {
     private Providers() {}
 
     /** Environment lookup; a seam so tests can fake variables. */
-    static Function<String, String> env = System::getenv;
+    public static Function<String, String> env = System::getenv;
 
     public enum Provider {
         OPENROUTER("OpenRouter", "openai", "https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", true, false, true, null),

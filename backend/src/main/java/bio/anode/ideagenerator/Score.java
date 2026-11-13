@@ -1,5 +1,8 @@
 package bio.anode.ideagenerator;
 
+import bio.anode.ideagenerator.model.Idea;
+
+import lombok.experimental.UtilityClass;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -7,9 +10,8 @@ import tools.jackson.databind.JsonNode;
  * comes from the sum in code, never from the model: bronze from 9, silver
  * from 11, gold from 13.
  */
-public final class Score {
-    private Score() {}
-
+@UtilityClass
+public class Score {
     public static final int BRONZE = 9, SILVER = 11, GOLD = 13;
     // A hand-set medal counts as a typical sum for that medal when breeding.
     private static final int[] OVERRIDE_FITNESS = {6, 10, 12, 14};

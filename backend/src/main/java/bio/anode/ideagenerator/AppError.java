@@ -12,14 +12,14 @@ public class AppError extends RuntimeException {
     }
 
     /** e?.code for any error the engine may see. */
-    static String codeOf(Throwable e, String fallback) {
+    public static String codeOf(Throwable e, String fallback) {
         if (e instanceof AppError a) return a.code;
         if (e instanceof Providers.ProviderError p) return p.code;
         return fallback;
     }
 
     /** e?.message ?? String(e) */
-    static String messageOf(Throwable e) {
+    public static String messageOf(Throwable e) {
         return e.getMessage() != null ? e.getMessage() : e.toString();
     }
 }

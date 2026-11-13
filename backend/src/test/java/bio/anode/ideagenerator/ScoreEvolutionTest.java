@@ -1,5 +1,7 @@
 package bio.anode.ideagenerator;
 
+import bio.anode.ideagenerator.model.Idea;
+
 import static bio.anode.ideagenerator.Evolution.pairKey;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -10,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import bio.anode.ideagenerator.Evolution.Combine;
 import bio.anode.ideagenerator.Evolution.Expand;
 import bio.anode.ideagenerator.Evolution.Move;
-import bio.anode.ideagenerator.Idea.Edge;
+import bio.anode.ideagenerator.model.Idea.Edge;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;

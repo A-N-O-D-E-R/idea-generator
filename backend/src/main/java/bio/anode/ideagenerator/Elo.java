@@ -1,5 +1,7 @@
 package bio.anode.ideagenerator;
 
+import bio.anode.ideagenerator.model.Idea;
+
 import bio.anode.ideagenerator.Providers.Chat;
 import bio.anode.ideagenerator.Providers.ChatRequest;
 import bio.anode.ideagenerator.Providers.ChatResult;

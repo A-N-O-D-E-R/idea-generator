@@ -13,8 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.GeneralSecurityException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Encryption of tenant secrets (provider API keys, the AI Scientist key) with Tink AEAD (AES256-GCM).
@@ -22,9 +21,8 @@ import org.slf4j.LoggerFactory;
  * The keyset comes from ideagen.keyset-file; without one (auth=none only) an ephemeral keyset is used and
  * stored keys do not survive a restart. Generate a keyset with --generate-keyset=&lt;file&gt;.
  */
+@Slf4j
 public class Secrets {
-    private static final Logger log = LoggerFactory.getLogger(Secrets.class);
-
     private final Aead aead;
 
     public Secrets(String keysetFile, boolean required) throws GeneralSecurityException, IOException {

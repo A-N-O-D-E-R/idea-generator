@@ -45,7 +45,7 @@ export function LeadsPanel() {
             >
               <h4 className="mb-1 text-sm font-semibold">{l.title}</h4>
               {l.summary ? <p className="mb-1.5 text-[13px] text-subtle">{l.summary}</p> : null}
-              {l.hook ? <p className="mb-1.5 text-[13px] text-[#cfd8ff]">{`→ ${l.hook}`}</p> : null}
+              {l.hook ? <p className="mb-1.5 text-[13px] text-primary">{`→ ${l.hook}`}</p> : null}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 {l.url ? (
                   <a href={safeHref(l.url)} target="_blank" rel="noopener noreferrer" className="text-xs">

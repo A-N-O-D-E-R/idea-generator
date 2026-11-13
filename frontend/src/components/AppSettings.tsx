@@ -113,7 +113,7 @@ export function AppSettings() {
                 <strong>{PROVIDER_LABELS[p]}</strong>
                 <Badge
                   variant="outline"
-                  className={cn('text-subtle', st?.keySource ? 'border-[#2f6a55] text-[#a6e6cd]' : !st?.local && 'border-[#6b5521] text-gold')}
+                  className={cn('text-subtle', st?.keySource ? 'border-emerald-600 text-emerald-700' : !st?.local && 'border-[#6b5521] text-gold')}
                 >
                   {st?.local ? t('local') : st?.keySource ? t(`keyFrom_${st.keySource}`) : t('keyMissing')}
                 </Badge>

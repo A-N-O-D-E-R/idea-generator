@@ -3,7 +3,7 @@ package bio.anode.ideagenerator;
 import bio.anode.ideagenerator.Providers.Chat;
 import bio.anode.ideagenerator.Providers.ChatRequest;
 import bio.anode.ideagenerator.Providers.ChatResult;
-import bio.anode.ideagenerator.Repo.LeadDraft;
+import bio.anode.ideagenerator.model.Lead;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -43,7 +43,7 @@ public final class Leads {
 
     public record Paper(String id, String title, String summary, String published, int upvotes) {}
 
-    public record Found(List<LeadDraft> leads, int dropped) {}
+    public record Found(List<Lead.Draft> leads, int dropped) {}
 
     static final Map<String, String> LANG_NAME = Map.of("sv", "idiomatic Swedish", "en", "English");
     static final String DEFAULT_TOPIC = "new technology, AI tools, and new ways people actually use them";
@@ -96,10 +96,10 @@ public final class Leads {
             String n = normalizeUrl(c);
             if (n != null) cited.add(n);
         }
-        List<LeadDraft> all = Js.arr(r.value().path("leads")).stream().map(l -> new LeadDraft(
+        List<Lead.Draft> all = Js.arr(r.value().path("leads")).stream().map(l -> new Lead.Draft(
                 clean(l.path("title"), 120), clean(l.path("summary"), 400), clean(l.path("hook"), 300), clean(l.path("url"), 500),
                 new LinkedHashMap<>())).toList();
-        List<LeadDraft> leads = all.stream().filter(l -> !l.title().isEmpty() && X_URL.matcher(l.url()).matches()
+        List<Lead.Draft> leads = all.stream().filter(l -> !l.title().isEmpty() && X_URL.matcher(l.url()).matches()
                 && cited.contains(normalizeUrl(l.url()))).toList();
         return new Llm.Out<>(new Found(leads, all.size() - leads.size()), r.costUsd());
     }
@@ -237,14 +237,14 @@ public final class Leads {
         ChatResult r = chat.chat(new ChatRequest(model,
                 "You are a research scout who reads AI papers and explains to designers and founders what each one makes possible.",
                 user, "research", RESEARCH_SCHEMA, 0.4, 2500, null));
-        List<LeadDraft> leads = new ArrayList<>();
+        List<Lead.Draft> leads = new ArrayList<>();
         Set<String> used = new HashSet<>();
         for (JsonNode l : Js.arr(r.value().path("leads"))) {
             Paper p = byId.get(Js.str(l.path("id")).replaceAll("^\\[|\\]$", ""));
             if (p == null || !used.add(p.id())) continue; // unknown or repeated id: drop
             String title = clean(l.path("title"), 120);
             Map<String, Object> meta = Js.obj("paperId", p.id(), "paperTitle", p.title(), "published", Js.cut(p.published(), 10), "upvotes", p.upvotes());
-            leads.add(new LeadDraft(title.isEmpty() ? p.title() : title, clean(l.path("summary"), 400), clean(l.path("hook"), 300),
+            leads.add(new Lead.Draft(title.isEmpty() ? p.title() : title, clean(l.path("summary"), 400), clean(l.path("hook"), 300),
                     "https://huggingface.co/papers/" + p.id(), meta));
         }
         return new Llm.Out<>(new Found(leads, 0), r.costUsd());

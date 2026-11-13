@@ -155,7 +155,7 @@ export function Dashboard({ keyword: initial }: { keyword: string | null }) {
                         <TableRow
                           key={k.keyword}
                           tabIndex={0}
-                          className={cn('cursor-pointer border-[#20242d] hover:bg-[#1a2130]', keyword === k.keyword && 'bg-[#1a2130]')}
+                          className={cn('cursor-pointer border-border hover:bg-muted', keyword === k.keyword && 'bg-muted')}
                           onClick={() => setKeyword(k.keyword)}
                           onKeyDown={(e) => e.key === 'Enter' && setKeyword(k.keyword)}
                         >
@@ -224,7 +224,7 @@ export function Dashboard({ keyword: initial }: { keyword: string | null }) {
       {tip ? (
         <div
           role="tooltip"
-          className="pointer-events-none fixed z-50 rounded-lg border border-[#3a4150] bg-tip px-2.5 py-1.5 text-xs shadow-[0_8px_24px_rgba(0,0,0,.4)]"
+          className="pointer-events-none fixed z-50 rounded-lg border border-border bg-tip px-2.5 py-1.5 text-xs shadow-[0_8px_24px_rgba(59,13,42,.18)]"
           style={{ left: tip.x, top: tip.y }}
         >
           <strong>{tip.n}</strong>{` ${t('count').toLowerCase()} · ${tip.day}`}

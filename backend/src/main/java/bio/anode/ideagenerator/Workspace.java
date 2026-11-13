@@ -1,5 +1,8 @@
 package bio.anode.ideagenerator;
 
+import bio.anode.ideagenerator.model.Board;
+import bio.anode.ideagenerator.model.Idea;
+
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;

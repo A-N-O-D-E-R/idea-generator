@@ -1,6 +1,10 @@
 package bio.anode.ideagenerator;
 
-import bio.anode.ideagenerator.Idea.Edge;
+import bio.anode.ideagenerator.model.Board;
+import bio.anode.ideagenerator.model.Reports;
+import bio.anode.ideagenerator.model.Idea;
+
+import bio.anode.ideagenerator.model.Idea.Edge;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -124,9 +128,9 @@ public final class Markdown {
         out.add("");
     }
 
-    public static String report(Repo.Report r, String lang) {
+    public static String report(Reports.Report r, String lang) {
         ReportLabels l = REPORT_LABELS.get(lang);
-        Repo.Medals m = r.totals().medals();
+        Reports.Medals m = r.totals().medals();
         List<String> out = new ArrayList<>(List.of("# " + l.title() + " · " + Js.utcToday(), "",
                 l.period().replace("{n}", String.valueOf(r.days())) + " · " + r.totals().boards() + " " + l.boards() + " · "
                         + r.totals().ideas() + " " + l.ideas() + " (" + r.totals().newIdeas() + " " + l.newIdeas() + ") · 🥇 " + m.gold()
@@ -143,11 +147,11 @@ public final class Markdown {
         }
         out.addAll(List.of("## " + l.projects(), ""));
         if (r.projects().isEmpty()) out.addAll(List.of(l.none(), ""));
-        for (Repo.ProjectRef p : r.projects()) {
+        for (Reports.ProjectRef p : r.projects()) {
             out.add("- **" + p.title() + "** (" + p.boardTitle() + (p.sum() != null ? ", " + p.sum() + "/15" : "") + "): `cd \"" + p.path() + "\" && claude`");
         }
         out.add("");
-        for (Repo.ReportBoard b : r.boards()) {
+        for (Reports.ReportBoard b : r.boards()) {
             out.addAll(List.of("## " + b.title(), ""));
             if (has(b.goal())) out.addAll(List.of("> " + l.goal() + ": " + b.goal(), ""));
             out.addAll(List.of(b.ideaCount() + " " + l.ideas() + " (" + b.newIdeas() + " " + l.newIdeas() + ")", ""));

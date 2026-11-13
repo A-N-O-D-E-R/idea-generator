@@ -30,17 +30,15 @@ final class TestDb {
         return PG.getJdbcUrl().replaceFirst("/[^/?]+(\\?|$)", "/" + name + "$1");
     }
 
-    /** A new database, migrated, with the local tenant. */
-    static Repo freshRepo() {
+    /** A new, migrated database: a Hikari pool on it. */
+    static HikariDataSource freshDataSource() {
         HikariDataSource ds = new HikariDataSource();
         ds.setJdbcUrl(freshUrl());
         ds.setUsername(PG.getUsername());
         ds.setPassword(PG.getPassword());
         ds.setMaximumPoolSize(4);
         Flyway.configure().dataSource(ds).load().migrate();
-        Repo repo = new Repo(ds);
-        repo.ensureTenant(Repo.LOCAL, "local", null);
-        return repo;
+        return ds;
     }
 
     static void register(org.springframework.test.context.DynamicPropertyRegistry r) {

@@ -1,5 +1,13 @@
 package bio.anode.ideagenerator;
 
+import static bio.anode.ideagenerator.repository.TenantRepository.LOCAL;
+import bio.anode.ideagenerator.repository.IdeaRepository;
+import bio.anode.ideagenerator.repository.SpendRepository;
+import bio.anode.ideagenerator.service.Ai;
+import bio.anode.ideagenerator.service.JudgeService;
+import bio.anode.ideagenerator.service.SettingsService;
+import bio.anode.ideagenerator.model.Idea;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -116,8 +124,8 @@ class ApiTest {
     @TestConfiguration
     static class Fakes {
         @Bean
-        Engine.Io io() {
-            return new Engine.Io(s -> ApiTest::fakeChat,
+        Ai.Io io() {
+            return new Ai.Io(s -> ApiTest::fakeChat,
                     url -> {
                         Extract.Page p = pages.get(url);
                         if (p == null) throw new RuntimeException("HTTP 404");
@@ -133,24 +141,26 @@ class ApiTest {
     @LocalServerPort
     int port;
     @Autowired
-    Repo repo;
+    IdeaRepository ideas;
     @Autowired
-    Engine engine;
+    SpendRepository spend;
     @Autowired
-    Settings settings;
+    JudgeService judge;
+    @Autowired
+    SettingsService settings;
     @Autowired
     JdbcClient jdbc;
 
     /** Defaults with the temporary folders, and no stored key. */
     static ObjectNode testSettings() {
-        ObjectNode s = Settings.plain(AppSettings.defaults().withProjectsRoot(projectsRoot.toString()).withWorkspaceRoot(workspace.toString()));
+        ObjectNode s = SettingsService.plain(AppSettings.defaults().withProjectsRoot(projectsRoot.toString()).withWorkspaceRoot(workspace.toString()));
         s.putObject("keys").put("openrouter", "");
         return s;
     }
 
     @BeforeEach
     void settings() {
-        settings.save(Repo.LOCAL, testSettings());
+        settings.save(LOCAL, testSettings());
     }
 
     // ---------------------------------------------------------------- helpers
@@ -241,10 +251,10 @@ class ApiTest {
         int before = calls.size();
         JsonNode s = seed(id(board), "Lånecyklar");
         assertEquals("Lånecyklar", s.path("title").asString());
-        engine.idle();
+        judge.idle();
         assertEquals(before + 1, calls.size(), "a short seed needs no LLM call, only the judge");
         assertTrue(lastCall("judgement").user().contains("Färre bilresor i staden"), "the judge sees the goal");
-        Idea judged = repo.getIdea(Repo.LOCAL, id(s));
+        Idea judged = ideas.find(LOCAL, id(s));
         assertEquals(3, judged.originality());
         assertEquals(List.of("public space", "sound"), judged.keywords(), "keywords are normalised");
 
@@ -253,13 +263,13 @@ class ApiTest {
         assertTrue(e.path("ideas").path(0).path("title").asString().matches("^Barn \\d+\\.1$"), "quotes and trailing period are stripped");
         assertTrue(lastCall("expand").user().contains("Every idea must serve this goal"));
         assertTrue(lastCall("expand").user().contains("- Lånecyklar"), "existing titles reach the prompt");
-        engine.idle();
-        for (JsonNode i : e.path("ideas")) assertNotNull(repo.getIdea(Repo.LOCAL, id(i)).judgedAt(), "children are judged in the background");
+        judge.idle();
+        for (JsonNode i : e.path("ideas")) assertNotNull(ideas.find(LOCAL, id(i)).judgedAt(), "children are judged in the background");
 
         long c1 = id(e.path("ideas").path(0)), c2 = id(e.path("ideas").path(1));
         JsonNode c = api("POST", "/api/boards/" + id(board) + "/combine", Map.of("a", c1, "b", c2)).data();
         assertEquals(2, c.path("idea").path("generation").asInt());
-        engine.idle();
+        judge.idle();
         judgeScores = new int[]{9, 0, 4}; // out of range on purpose
         JsonNode j = api("POST", "/api/ideas/" + id(c.path("idea")) + "/judge", Map.of()).data().path("idea");
         assertEquals(List.of(5, 1, 4), List.of(j.path("originality").asInt(), j.path("feasibility").asInt(), j.path("impact").asInt()), "scores are clamped");
@@ -270,7 +280,7 @@ class ApiTest {
         assertTrue(md.text().contains("> Färre bilresor i staden"));
         assertTrue(md.text().contains("## 🥉 Korsning — 10/15"), "10/15 is bronze");
         assertTrue(md.text().contains("`public space` `sound`"));
-        assertTrue(repo.spentOn(Repo.LOCAL, id(board)) > 0, "spend lands on the board");
+        assertTrue(spend.today(LOCAL, id(board)) > 0, "spend lands on the board");
         judgeScores = new int[]{3, 3, 3};
     }
 
@@ -296,7 +306,7 @@ class ApiTest {
         api("PATCH", "/api/boards/" + id(board), Js.parse("{\"config\":{\"models\":{\"expand\":\"\"}}}"));
         api("POST", "/api/ideas/" + id(s) + "/expand", Map.of());
         assertEquals("ollama:qwen3:8b", lastCall("expand").model(), "an empty override falls back to the app setting");
-        engine.idle();
+        judge.idle();
     }
 
     @Test
@@ -320,8 +330,8 @@ class ApiTest {
         judgeScores = new int[]{5, 4, 5};
         JsonNode board = newBoard("{\"goal\":\"Ljud i offentliga rum\"}");
         JsonNode s = seed(id(board), "Sjungande parkbänk");
-        engine.idle();
-        Idea gold = repo.getIdea(Repo.LOCAL, id(s));
+        judge.idle();
+        Idea gold = ideas.find(LOCAL, id(s));
         assertNotNull(gold.projectPath(), "gold -> project");
         assertTrue(gold.projectPath().startsWith(projectsRoot.toString()));
         assertTrue(gold.projectPath().endsWith("sjungande-bank"), "slug is ASCII: " + gold.projectPath());
@@ -343,8 +353,8 @@ class ApiTest {
         JsonNode off = newBoard();
         api("PATCH", "/api/boards/" + id(off), Js.parse("{\"config\":{\"autoProjectOnGold\":false}}"));
         JsonNode s2 = seed(id(off), "Ännu en guldidé");
-        engine.idle();
-        assertNull(repo.getIdea(Repo.LOCAL, id(s2)).projectPath());
+        judge.idle();
+        assertNull(ideas.find(LOCAL, id(s2)).projectPath());
         judgeScores = new int[]{3, 3, 3};
     }
 
@@ -355,7 +365,7 @@ class ApiTest {
         JsonNode b = newBoard("{\"title\":\"Trafik\",\"goal\":\"Färre bilar\"}");
         JsonNode c = newBoard("{\"title\":\"Mat\",\"goal\":\"Mindre matsvinn\"}");
         JsonNode idea = seed(id(a), "Visslande trafikljus");
-        engine.idle();
+        judge.idle();
 
         JsonNode data = api("POST", "/api/ideas/" + id(idea) + "/announce", Map.of("boardIds", List.of(id(a), id(b), id(c), id(b)))).data();
         assertEquals(List.of(id(b), id(c)), Js.arr(data.path("guests")).stream().map(g -> g.path("boardId").asLong()).sorted().toList(),
@@ -363,7 +373,7 @@ class ApiTest {
         JsonNode guest = Js.arr(data.path("guests")).stream().filter(g -> g.path("boardId").asLong() == id(b)).findFirst().orElseThrow().path("idea");
         assertEquals("guest", guest.path("kind").asString());
         assertEquals("Ljud", guest.path("originBoardTitle").asString());
-        engine.idle();
+        judge.idle();
         assertTrue(calls.stream().anyMatch(x -> x.schemaName().equals("judgement") && x.user().contains("Visslande trafikljus") && x.user().contains("Färre bilar")),
                 "judged against the target board's goal");
 
@@ -376,10 +386,10 @@ class ApiTest {
 
         JsonNode local = seed(id(b), "Cykelfiler");
         JsonNode child = api("POST", "/api/boards/" + id(b) + "/combine", Map.of("a", id(guest), "b", id(local))).data();
-        List<Idea> lineage = repo.lineage(Repo.LOCAL, id(child.path("idea")));
+        List<Idea> lineage = ideas.lineage(LOCAL, id(child.path("idea")));
         assertTrue(lineage.stream().anyMatch(i -> i.title().equals("Visslande trafikljus")) && lineage.stream().anyMatch(i -> i.title().equals("Cykelfiler")));
         assertTrue(lineage.stream().anyMatch(i -> i.boardId() == id(a)), "lineage follows the guest home");
-        engine.idle();
+        judge.idle();
     }
 
     @Test
@@ -398,7 +408,7 @@ class ApiTest {
         assertEquals(Js.parse("[{\"ideaId\":" + id(idea) + ",\"boardId\":" + id(data.path("board")) + ",\"title\":\"Ljudande busshållplats\"}]"),
                 p.path("spinoffs"));
         api("PATCH", "/api/boards/" + id(parent), Js.parse("{\"config\":{\"mode\":\"manual\"}}"));
-        engine.idle();
+        judge.idle();
     }
 
     @Test
@@ -424,7 +434,7 @@ class ApiTest {
         JsonNode x2 = api("POST", "/api/boards/" + id(board) + "/leads/x", Map.of()).data();
         assertTrue(x2.path("empty").asBoolean());
         assertEquals(2, x2.path("leads").size(), "nothing verified: old leads stay");
-        engine.idle();
+        judge.idle();
     }
 
     @Test
@@ -434,7 +444,7 @@ class ApiTest {
         assertEquals(400, api("POST", "/api/boards/" + id(board) + "/summary", Map.of()).status(), "needs two ideas");
         seed(id(board), "Lånecyklar");
         seed(id(board), "Korsning");
-        engine.idle();
+        judge.idle();
         JsonNode data = api("POST", "/api/boards/" + id(board) + "/summary", Map.of()).data();
         assertEquals("Tavlan rör sig mot ljud.", data.path("board").path("summary").path("headline").asString());
         assertEquals(2, data.path("board").path("summary").path("ideaCount").asInt());
@@ -450,7 +460,7 @@ class ApiTest {
         JsonNode b2 = newBoard("{\"title\":\"D2\"}");
         seed(id(b1), "Ett");
         seed(id(b2), "Två");
-        engine.idle();
+        judge.idle();
         JsonNode data = api("GET", "/api/dashboard?days=7").data();
         JsonNode kw = Js.arr(data.path("keywords")).stream().filter(k -> k.path("keyword").asString().equals("trend keyword")).findFirst().orElseThrow();
         assertEquals(2, kw.path("count").asInt());
@@ -484,7 +494,7 @@ class ApiTest {
             }
         });
         seed(id(board), "Live");
-        engine.idle();
+        judge.idle();
         long deadline = System.currentTimeMillis() + 5000;
         while (System.currentTimeMillis() < deadline
                 && !(seen.stream().anyMatch(e -> e.path("type").asString().equals("ideas")) && seen.stream().anyMatch(e -> e.path("type").asString().equals("judging")))) {
@@ -505,13 +515,13 @@ class ApiTest {
     void providerFailuresSurfaceWithTheirCodeAndNothingIsHalfSaved() {
         JsonNode board = newBoard();
         JsonNode s = seed(id(board), "Frö");
-        engine.idle();
+        judge.idle();
         failNext.set(new ProviderError("no_key", "OpenRouter: no API key"));
         Res r = api("POST", "/api/ideas/" + id(s) + "/expand", Map.of());
         assertEquals(502, r.status());
         assertEquals("no_key", r.data().path("code").asString());
         assertEquals("OpenRouter: no API key", r.data().path("error").asString());
-        assertEquals(1, repo.listIdeas(Repo.LOCAL, id(board)).size());
+        assertEquals(1, ideas.list(LOCAL, id(board)).size());
     }
 
     @Test
@@ -522,8 +532,8 @@ class ApiTest {
         assertEquals("Destillerat frö", ok.data().path("idea").path("title").asString());
         assertEquals("url_unreadable", api("POST", "/api/boards/" + id(board) + "/seed", Map.of("text", "https://example.com/nej")).data().path("code").asString());
         assertEquals("url_no_text", api("POST", "/api/boards/" + id(board) + "/seed", Map.of("text", "https://example.com/tom")).data().path("code").asString());
-        engine.idle();
-        assertEquals(1, repo.listIdeas(Repo.LOCAL, id(board)).size());
+        judge.idle();
+        assertEquals(1, ideas.list(LOCAL, id(board)).size());
     }
 
     @Test
@@ -588,15 +598,15 @@ class ApiTest {
         judgeScores = new int[]{3, 3, 3};
         long win = id(seed(board, "Vinnare"));
         long lose = id(seed(board, "Förlorare"));
-        engine.idle();
+        judge.idle();
         long before = duelCalls();
         JsonNode d = api("POST", "/api/boards/" + board + "/duel", Map.of()).data();
         assertEquals(2, duelCalls() - before, "asked twice, order swapped");
         long a = d.path("a").asLong();
         assertEquals(a == win ? 1.0 : 0.0, d.path("scoreA").asDouble(), "the same idea wins in both positions");
-        assertEquals(1016.0, repo.getIdea(Repo.LOCAL, win).elo(), 1e-9);
-        assertEquals(984.0, repo.getIdea(Repo.LOCAL, lose).elo(), 1e-9);
-        assertEquals(1, repo.getIdea(Repo.LOCAL, win).duels());
+        assertEquals(1016.0, ideas.find(LOCAL, win).elo(), 1e-9);
+        assertEquals(984.0, ideas.find(LOCAL, lose).elo(), 1e-9);
+        assertEquals(1, ideas.find(LOCAL, win).duels());
         assertTrue(api("GET", "/api/boards/" + board).text().contains("\"elo\":1016.0"));
     }
 
@@ -630,7 +640,7 @@ class ApiTest {
         for (byte[] ct : jdbc.sql("SELECT ciphertext FROM tenant_secrets").query(byte[].class).list()) {
             assertFalse(new String(ct, StandardCharsets.ISO_8859_1).contains("secret"), "encrypted at rest");
         }
-        assertEquals("sk-ant-very-secret", settings.get(Repo.LOCAL).keys().get("anthropic"), "the engine gets the key");
+        assertEquals("sk-ant-very-secret", settings.get(LOCAL).keys().get("anthropic"), "the engine gets the key");
 
         api("PUT", "/api/settings", Map.of("maxUsdPerDay", 3));
         assertTrue(api("GET", "/api/settings").data().path("settings").path("keys").path("anthropic").path("stored").asBoolean(), "absent = keep");
@@ -660,7 +670,7 @@ class ApiTest {
         }
         assertEquals("no_project", api("POST", "/api/ideas/" + id(seed(id(newBoard()), "Idé")) + "/reveal", Map.of()).data().path("code").asString(),
                 "reveal is not switched off locally");
-        engine.idle();
+        judge.idle();
     }
 
     @Test

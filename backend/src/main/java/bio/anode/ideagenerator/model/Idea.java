@@ -1,4 +1,4 @@
-package bio.anode.ideagenerator;
+package bio.anode.ideagenerator.model;
 
 import java.util.List;
 
@@ -30,4 +30,6 @@ public record Idea(
         int duels) {
 
     public record Edge(long from, long to) {}
+
+    public record Position(long id, double x, double y) {}
 }

@@ -40,7 +40,7 @@ function HoverCard() {
       ref={ref}
       role="tooltip"
       className={cn(
-        'pointer-events-none fixed z-50 max-w-[320px] rounded-lg border border-[#3a4150] bg-tip px-2.5 py-1.5 text-xs opacity-0 shadow-[0_8px_24px_rgba(0,0,0,.4)] transition-opacity duration-100',
+        'pointer-events-none fixed z-50 max-w-[320px] rounded-lg border border-border bg-tip px-2.5 py-1.5 text-xs opacity-0 shadow-[0_8px_24px_rgba(59,13,42,.18)] transition-opacity duration-100',
         idea && 'opacity-100',
       )}
     >
@@ -100,8 +100,8 @@ function SeedBar() {
         placeholder={busy ?? t('seedPlaceholder')}
         aria-label="Seed"
         className={cn(
-          'w-full rounded-[14px] border border-[#343a47] bg-card/94 px-4.5 py-3 text-[15px] shadow-[0_12px_34px_rgba(0,0,0,.4)] outline-none placeholder:text-muted-foreground',
-          'focus:border-primary focus:shadow-[0_0_0_3px_rgba(57,135,229,.25),0_12px_34px_rgba(0,0,0,.4)]',
+          'w-full rounded-[14px] border border-border bg-card/94 px-4.5 py-3 text-[15px] shadow-[0_12px_34px_rgba(59,13,42,.18)] outline-none placeholder:text-muted-foreground',
+          'focus:border-primary focus:shadow-[0_0_0_3px_rgba(194,69,124,.25),0_12px_34px_rgba(59,13,42,.18)]',
           exhibit && 'px-5.5 py-4.5 text-xl',
         )}
       />
@@ -115,8 +115,8 @@ function ExhibitOverlay() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute top-3.5 left-4 max-w-[min(660px,52vw)] rounded-[14px] px-4.5 pt-3 pb-3.5 [text-shadow:0_2px_12px_rgba(0,0,0,.9)]"
-      style={{ background: 'radial-gradient(ellipse at top left, rgba(15,17,22,.92) 40%, rgba(15,17,22,0) 75%)' }}
+      className="pointer-events-none absolute top-3.5 left-4 max-w-[min(660px,52vw)] rounded-[14px] px-4.5 pt-3 pb-3.5 [text-shadow:0_0_12px_rgba(255,255,255,.95)]"
+      style={{ background: 'radial-gradient(ellipse at top left, rgba(255,255,255,.92) 40%, rgba(255,255,255,0) 75%)' }}
     >
       <h1 className="m-0 text-[44px] font-bold tracking-tight">{board?.title}</h1>
       <p className="mt-1.5 mb-3 text-xl text-subtle">{board?.goal}</p>

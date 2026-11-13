@@ -33,7 +33,7 @@ encrypted with Tink AEAD (AES256-GCM, associated data `tenant:name`) in `tenant_
 the API answers `{"stored": true|false}`. In a `PUT`, a secret string sets it, `""` deletes it, and anything else keeps it.
 With `ideagen.auth=none` the server refuses to start unless `server.address` is a loopback address.
 
-### Modes and security (`Security.java`)
+### Modes and security (`config/Security.java`)
 
 - Both modes: CSRF for the SPA (`XSRF-TOKEN` cookie, `X-XSRF-TOKEN` header on every write); errors under `/api` are JSON.
 - `none`: every request is the tenant `local`; requests whose `Host` is not a loopback name get 403 `bad_host`.
@@ -69,31 +69,26 @@ java -cp target/idea-generator-0.1.0.jar -Dloader.main=bio.anode.ideagenerator.C
 
 Keys come from the environment. Re-run it whenever the judge's prompt, schema or model changes. It exits with 1 on FAIL.
 
-## Layout (`bio.anode.ideagenerator`, one flat package)
+## Layout (`bio.anode.ideagenerator`)
 
-| File | Upstream | What |
-|---|---|---|
-| `Api` | `app.ts` | Every route, SSE (`ResponseBodyEmitter`, raw `data: …\n\n` framing, `: ping` every 25 s), error advice |
-| `Markdown` | `app.ts` | `export.md` and `report.md` |
-| `Engine` | `engine.ts` | Operations, background judge queue (max 3), per-board `Bus`, `judging` set, `autoStep`. `Engine.Io` holds every outside call (chat, fetch, papers, reveal, git), so tests can fake them |
-| `Autopilot` | `autopilot.ts` | Pure `rateCheck`, plus a 1 s scheduler on a virtual thread that starts with the app (`idea.autopilot=false` turns it off) |
-| `Repo` | `db.ts` | `JdbcClient` on Postgres, with the upstream schema (`V1__schema.sql`), seed templates per tenant and queries, every one scoped by tenant. `report()` and `dashboard()` live here too |
-| `Board`, `Idea` | `db.ts` | Records, `mergeConfig` and the default templates |
-| `Providers` | `providers.ts` | `provider:model` routing over `java.net.http`: OpenAI-compatible, Ollama native, and the Anthropic Messages API |
-| `Llm` | `llm.ts` | Every prompt and schema |
-| `Leads`, `Project`, `Extract` | same names | The X and research scouts, the Claude Code project folders, and link extraction |
-| `Score`, `Evolution` | `public/js/score.js`, `evolve.js` | Pure ports |
-| `Js` | – | JSON (Jackson 3) plus the JS coercions upstream relies on (`String()`, `Number()`, `trim`, `slice`) |
-| `Settings`, `Secrets` | – | Per-tenant settings in Postgres; Tink AEAD for the keys |
-| `Security` | – | Both modes' filter chain: CSRF, loopback Host check (`none`), OAuth login and sessions (`oauth`), `TenantUser` |
-| `IdeaGeneratorApplication` | `index.ts` | Wiring, `ideagen.auth` mode, `--generate-keyset` |
-| `CalibrateJudge` | `tools/calibrate-judge.ts` | The calibration tool |
+Controller → service → repository, wired by Spring (`@RestController`, `@Service`, `@Repository`, Lombok `@RequiredArgsConstructor`).
+Controllers only parse the request and call a service; services hold the logic and never see HTTP; repositories hold the SQL
+(`JdbcClient` on Postgres, schema `V1__schema.sql`, every query scoped by tenant).
+
+| Package | What |
+|---|---|
+| `controller` | `Board`/`Idea`/`Lead`/`Report`/`Template`/`SettingsController` (upstream `app.ts`, raw JSON bodies coerced as upstream does, SSE with `ResponseBodyEmitter` and `: ping` every 25 s), `ApiErrors` (`{error, code}`), `CurrentTenant` |
+| `service` | `BoardService`, `IdeaService` (seed, expand, combine, announce, spin-off), `JudgeService` (judge, background queue of max 3), `ProjectService`, `LeadService`, `ReportService`, `TemplateService`, `ProviderService`, `SettingsService`, `TenantService`, `EvolutionService` (one autopilot step), `Autopilot` (pure `rateCheck` plus a 1 s scheduler; `idea.autopilot=false` turns it off), `EventBus` (per board, followed over SSE), `Ai` (the LLM with the tenant's settings and spend, and `Ai.Io` for every outside call: chat, fetch, papers, reveal, git, so tests can fake them) |
+| `repository` | `Board`/`Idea`/`Lead`/`Template`/`Tenant`/`Spend`/`Report`/`SettingsRepository` |
+| `model` | `Board` (with `mergeConfig` and the default templates), `Idea`, `Lead`, `NewIdea`, `Me`, `Reports` |
+| `config` | `AppConfig` (beans that need properties), `Mode` (`ideagen.auth`), `Security` (both modes' filter chain: CSRF, loopback Host check in `none`, OAuth login and sessions in `oauth`, `TenantUser`), `ApiDocs` |
+| root | `IdeaGeneratorApplication` (`--generate-keyset`), and the pure helpers: `Providers` (`provider:model` routing over `java.net.http`), `Llm` (every prompt and schema), `Leads`, `Project`, `Extract`, `Workspace`, `Scientist`, `Markdown` (`export.md`, `report.md`), `Score`, `Elo`, `Evolution`, `Js` (JSON plus the JS coercions upstream relies on), `Secrets` (Tink AEAD), `AppError`, `CalibrateJudge` |
 
 ## Port notes
 
 - **Postgres, not SQLite.** Timestamps stay text (`YYYY-MM-DD HH:MM:SS`, UTC) and JSON columns stay text, so every JSON
-  shape is unchanged (jsonb would reorder keys). Every `Repo` method is still `synchronized`, as upstream used a single
-  synchronous handle.
+  shape is unchanged (jsonb would reorder keys). Repository methods that read, then write the same rows are still `synchronized` (one lock per repository), as
+  upstream used a single synchronous handle.
 - **Anthropic is called over HTTP**, not through an SDK. The request shape is the upstream SDK call: `output_config` with a JSON schema and `effort: low`, no temperature, and `max_tokens` of at least 4000. The headers follow upstream CLAUDE.md: `anthropic-version: 2026-10-21` and the key as `Authorization: Bearer`. The SDK's retry policy (2 retries on 408/409/429/5xx) and its pagination of `/v1/models` are reproduced. This has not been tested against the live API, only against a fake server, which is also true upstream.
 - **Shutdown is immediate** (`server.shutdown: immediate`). Otherwise an open event stream holds a graceful shutdown for 30 s.
 - **Static files** are served by Spring's resource handler. An encoded `..` gets a 400 from Tomcat, where upstream answered 404. A missing file returns `{"error":"Not found"}` (404), and a non-GET request returns `{"error":"Method not allowed"}` (405), as upstream.

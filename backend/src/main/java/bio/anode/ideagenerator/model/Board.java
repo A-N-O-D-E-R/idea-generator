@@ -1,5 +1,7 @@
-package bio.anode.ideagenerator;
+package bio.anode.ideagenerator.model;
 
+import bio.anode.ideagenerator.Js;
+import bio.anode.ideagenerator.Providers;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,6 +54,9 @@ public record Board(
             boolean diversity,
             /* per-role "provider:model" overrides; empty = the app-wide setting */
             Map<String, String> models) {}
+
+    /** A board spun off from one of this board's ideas. */
+    public record Spinoff(long ideaId, long boardId, String title) {}
 
     public record Template(long id, String name, String system, String expand, String combine, int sort) {}
 

@@ -1,40 +1,39 @@
-package bio.anode.ideagenerator;
+package bio.anode.ideagenerator.service;
 
+import bio.anode.ideagenerator.Js;
+import bio.anode.ideagenerator.Providers;
 import bio.anode.ideagenerator.Providers.AppSettings;
 import bio.anode.ideagenerator.Providers.Provider;
+import bio.anode.ideagenerator.Secrets;
+import bio.anode.ideagenerator.repository.SettingsRepository;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import javax.sql.DataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
+import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * App settings per tenant, in the database: plain settings as JSON (tenant_settings), secrets encrypted
- * (tenant_secrets, see {@link Secrets}). Secrets are the provider API keys, named by provider id, and the
- * AI Scientist key, named "scientist". The browser only ever sees {stored: true|false} for a secret.
+ * App settings per tenant: plain settings as JSON, secrets encrypted (see {@link Secrets}). Secrets are the provider
+ * API keys, named by provider id, and the AI Scientist key, named "scientist". The browser only ever sees
+ * {stored: true|false} for a secret.
  */
-public class Settings {
-    private static final Logger log = LoggerFactory.getLogger(Settings.class);
+@Slf4j
+public class SettingsService {
     static final String SCIENTIST = "scientist";
     static final List<String> PLAIN = List.of("baseUrls", "models", "projectsRoot", "maxUsdPerDay", "workspaceRoot", "scientistUrl", "reposRoots");
 
-    private final JdbcClient db;
-    private final TransactionTemplate tx;
+    private final SettingsRepository repo;
     private final Secrets secrets;
     /** Shared server (ideagen.auth=oauth): projects live under dataDir/tenants/<id>/projects, workspace and repo scan off. */
     private final Path dataDir;
 
-    public Settings(DataSource ds, Secrets secrets, Path dataDir) {
-        this.db = JdbcClient.create(ds);
-        this.tx = new TransactionTemplate(new DataSourceTransactionManager(ds));
+    public SettingsService(SettingsRepository repo, Secrets secrets, Path dataDir) {
+        this.repo = repo;
         this.secrets = secrets;
         this.dataDir = dataDir == null ? null : dataDir.toAbsolutePath().normalize();
     }
@@ -51,22 +50,19 @@ public class Settings {
 
     /** Providers that take an API key. */
     static List<Provider> keyed() {
-        return java.util.Arrays.stream(Provider.values()).filter(p -> p.env != null).toList();
+        return Arrays.stream(Provider.values()).filter(p -> p.env != null).toList();
     }
 
     private ObjectNode stored(String t) {
-        String json = db.sql("SELECT settings FROM tenant_settings WHERE tenant_id = ?").param(t).query(String.class).optional().orElse("{}");
-        JsonNode n = Js.parse(json);
-        return n instanceof ObjectNode o ? o : Js.object();
+        return Js.parse(repo.plain(t)) instanceof ObjectNode o ? o : Js.object();
     }
 
     /** name -> plaintext. A secret that no longer decrypts (keyset changed) counts as not stored. */
     private Map<String, String> secrets(String t) {
         Map<String, String> out = new HashMap<>();
-        db.sql("SELECT name, ciphertext FROM tenant_secrets WHERE tenant_id = ?").param(t).query(rs -> {
-            String name = rs.getString("name");
+        repo.eachSecret(t, (name, ciphertext) -> {
             try {
-                out.put(name, secrets.decrypt(t, name, rs.getBytes("ciphertext")));
+                out.put(name, secrets.decrypt(t, name, ciphertext));
             } catch (GeneralSecurityException e) {
                 log.warn("Stored secret '{}' of tenant {} does not decrypt with this keyset; ignoring it", name, t);
             }
@@ -86,7 +82,7 @@ public class Settings {
     }
 
     /** The settings without any secret. */
-    static ObjectNode plain(AppSettings s) {
+    public static ObjectNode plain(AppSettings s) {
         ObjectNode o = Js.object();
         o.set("baseUrls", Js.tree(s.baseUrls()));
         o.set("models", Js.tree(s.models()));
@@ -121,32 +117,20 @@ public class Settings {
         AppSettings merged = Providers.mergeAppSettings(cur);
         // On a shared server the folder settings are ignored, so they are not stored either.
         String json = Js.stringify(plain(shared() ? merged.sharedWith("") : merged));
-        tx.executeWithoutResult(s -> {
-            db.sql("""
-                            INSERT INTO tenant_settings (tenant_id, settings) VALUES (?, ?)
-                             ON CONFLICT (tenant_id) DO UPDATE SET settings = excluded.settings, updated_at = now()""")
-                    .params(t, json).update();
-            for (Provider p : keyed()) setSecret(t, p.id(), body.path("keys").path(p.id()));
-            setSecret(t, SCIENTIST, body.path("scientistKey"));
-        });
+        Map<String, byte[]> changes = new LinkedHashMap<>();
+        for (Provider p : keyed()) secretChange(changes, t, p.id(), body.path("keys").path(p.id()));
+        secretChange(changes, t, SCIENTIST, body.path("scientistKey"));
+        repo.save(t, json, changes);
     }
 
-    private void setSecret(String t, String name, JsonNode v) {
+    /** name -> ciphertext of the new value, or null to delete; nothing when the body leaves the secret alone. */
+    private void secretChange(Map<String, byte[]> changes, String t, String name, JsonNode v) {
         if (!v.isString()) return;
         String value = Js.cut(Js.trim(v.stringValue()), 500);
-        if (value.isEmpty()) {
-            db.sql("DELETE FROM tenant_secrets WHERE tenant_id = ? AND name = ?").params(t, name).update();
-            return;
-        }
-        byte[] ct;
         try {
-            ct = secrets.encrypt(t, name, value);
+            changes.put(name, value.isEmpty() ? null : secrets.encrypt(t, name, value));
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("could not encrypt a secret", e); // no value in the message
         }
-        db.sql("""
-                        INSERT INTO tenant_secrets (tenant_id, name, ciphertext) VALUES (?, ?, ?)
-                         ON CONFLICT (tenant_id, name) DO UPDATE SET ciphertext = excluded.ciphertext, updated_at = now()""")
-                .params(t, name, ct).update();
     }
 }

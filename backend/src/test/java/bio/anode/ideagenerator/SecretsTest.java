@@ -1,5 +1,7 @@
 package bio.anode.ideagenerator;
 
+import bio.anode.ideagenerator.config.Mode;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,13 +34,13 @@ class SecretsTest {
     @Test
     void oauthNeedsAKeysetNoneRunsOnLoopbackOnly() {
         assertTrue(assertThrows(IllegalStateException.class, () -> new Secrets("", true)).getMessage().contains("--generate-keyset"));
-        assertEquals(false, IdeaGeneratorApplication.Mode.of("none", "127.0.0.1").oauth());
-        assertEquals(false, IdeaGeneratorApplication.Mode.of("none", "localhost").oauth());
-        assertEquals(false, IdeaGeneratorApplication.Mode.of("none", "::1").oauth());
+        assertEquals(false, Mode.of("none", "127.0.0.1").oauth());
+        assertEquals(false, Mode.of("none", "localhost").oauth());
+        assertEquals(false, Mode.of("none", "::1").oauth());
         for (String open : new String[]{"0.0.0.0", "", "192.168.1.2", "example.invalid"}) {
-            assertThrows(IllegalStateException.class, () -> IdeaGeneratorApplication.Mode.of("none", open), open);
+            assertThrows(IllegalStateException.class, () -> Mode.of("none", open), open);
         }
-        assertEquals(true, IdeaGeneratorApplication.Mode.of("oauth", "0.0.0.0").oauth());
-        assertThrows(IllegalStateException.class, () -> IdeaGeneratorApplication.Mode.of("basic", "127.0.0.1"));
+        assertEquals(true, Mode.of("oauth", "0.0.0.0").oauth());
+        assertThrows(IllegalStateException.class, () -> Mode.of("basic", "127.0.0.1"));
     }
 }

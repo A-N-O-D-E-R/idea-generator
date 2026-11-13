@@ -1,6 +1,8 @@
 package bio.anode.ideagenerator;
 
-import bio.anode.ideagenerator.Idea.Edge;
+import bio.anode.ideagenerator.model.Idea;
+
+import bio.anode.ideagenerator.model.Idea.Edge;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;

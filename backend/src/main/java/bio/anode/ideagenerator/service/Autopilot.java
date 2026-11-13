@@ -1,9 +1,12 @@
-package bio.anode.ideagenerator;
+package bio.anode.ideagenerator.service;
 
 import static bio.anode.ideagenerator.AppError.codeOf;
 import static bio.anode.ideagenerator.AppError.messageOf;
 
 import bio.anode.ideagenerator.Providers.AppSettings;
+import bio.anode.ideagenerator.model.Board;
+import bio.anode.ideagenerator.repository.BoardRepository;
+import bio.anode.ideagenerator.repository.SpendRepository;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -20,8 +23,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Server-side autopilot for boards in automatic mode, with a rate limiter
@@ -36,8 +39,9 @@ import org.slf4j.LoggerFactory;
  * Dollar limits only see providers that report cost. A limit of 0 means "free
  * models only": a board on a local model keeps running, the first paid call stops it.
  */
+@Slf4j
+@RequiredArgsConstructor
 public class Autopilot {
-    private static final Logger log = LoggerFactory.getLogger(Autopilot.class);
     static final long HOUR = 3_600_000;
 
     public record RateInput(long now, List<Long> steps, long lastAt, int paceSeconds, int stepsPerHour, double boardSpent,
@@ -45,7 +49,7 @@ public class Autopilot {
 
     /** ok, or why not (global_budget | board_budget | backoff | hourly | pace) and until when. */
     public record Decision(boolean ok, String reason, long until) {
-        static final Decision OK = new Decision(true, null, 0);
+        public static final Decision OK = new Decision(true, null, 0);
     }
 
     /** state: manual | running | idle | error | pace | hourly | backoff | board_budget | global_budget */
@@ -91,29 +95,21 @@ public class Autopilot {
         Status sent;
     }
 
-    private final Repo repo;
-    private final Engine.Bus bus;
+    private final BoardRepository boards;
+    private final SpendRepository spend;
+    private final EventBus bus;
     /** One step on a board: (tenant, boardId) -> what it did. */
     public interface StepFn {
-        Engine.Step step(String tenant, long boardId);
+        EvolutionService.Step step(String tenant, long boardId);
     }
 
     private final StepFn autoStep;
     private final Function<String, AppSettings> settings;
     private final LongSupplier now;
+    /** Where a step runs; tests pass Runnable::run to step synchronously. */
     private final Executor steps;
     private final Map<Long, BoardState> states = new ConcurrentHashMap<>();
     private ScheduledExecutorService timer;
-
-    /** steps: where a step runs; tests pass Runnable::run to step synchronously. */
-    public Autopilot(Repo repo, Engine.Bus bus, StepFn autoStep, Function<String, AppSettings> settings, LongSupplier now, Executor steps) {
-        this.repo = repo;
-        this.bus = bus;
-        this.autoStep = autoStep;
-        this.settings = settings;
-        this.now = now;
-        this.steps = steps;
-    }
 
     private void publish(long boardId, BoardState s, Status status) {
         synchronized (s) {
@@ -121,25 +117,25 @@ public class Autopilot {
             if (status.equals(s.sent)) return; // do not repeat the same status every tick
             s.sent = status;
         }
-        bus.emit(boardId, Engine.event("autopilot", "status", status));
+        bus.emit(boardId, EventBus.event("autopilot", "status", status));
     }
 
     public synchronized void tick() {
         long t = now.getAsLong();
-        List<Board> boards = repo.autoBoards();
-        Set<Long> auto = boards.stream().map(Board::id).collect(Collectors.toSet());
+        List<Board> auto = boards.auto();
+        Set<Long> autoIds = auto.stream().map(Board::id).collect(Collectors.toSet());
         for (Long id : List.copyOf(states.keySet())) {
-            if (!auto.contains(id) && states.remove(id) != null) bus.emit(id, Engine.event("autopilot", "status", Status.MANUAL));
+            if (!autoIds.contains(id) && states.remove(id) != null) bus.emit(id, EventBus.event("autopilot", "status", Status.MANUAL));
         }
         Map<String, Double> globalSpentOf = new HashMap<>();
-        for (Board b : boards) {
+        for (Board b : auto) {
             long id = b.id();
             String tenant = b.tenantId();
-            double globalSpent = globalSpentOf.computeIfAbsent(tenant, k -> repo.spentOn(k, null));
+            double globalSpent = globalSpentOf.computeIfAbsent(tenant, k -> spend.today(k, null));
             BoardState s = states.computeIfAbsent(id, k -> new BoardState());
             if (s.busy) continue;
             s.steps = new ArrayList<>(s.steps.stream().filter(x -> x > t - HOUR).toList());
-            double boardSpent = repo.spentOn(tenant, id);
+            double boardSpent = spend.today(tenant, id);
             int stepsLastHour = s.steps.size();
             double spentToday = Math.round(boardSpent * 10000) / 10000.0;
             Decision d = rateCheck(new RateInput(t, s.steps, s.lastAt, b.config().autopilotSeconds(), b.config().rate().stepsPerHour(),
@@ -155,7 +151,7 @@ public class Autopilot {
             int pace = b.config().autopilotSeconds();
             steps.execute(() -> {
                 try {
-                    Engine.Step r = autoStep.step(tenant, id);
+                    EvolutionService.Step r = autoStep.step(tenant, id);
                     synchronized (s) {
                         if (!r.did().equals("idle")) s.steps.add(now.getAsLong());
                         s.lastAt = now.getAsLong();

@@ -162,7 +162,7 @@ function IdeaView({ idea }: { idea: Idea }) {
             variant="outline"
             title={t('projectHint')}
             disabled={making}
-            className="w-full border-[#4a4637] bg-[#24221b] font-semibold text-[#f1e7c8] hover:bg-[#2e2b21] dark:border-[#4a4637] dark:bg-[#24221b] dark:hover:bg-[#2e2b21]"
+            className="w-full border-amber-400 bg-amber-50 font-semibold text-amber-900 hover:bg-amber-100"
             onClick={() => {
               setMaking(true)
               makeProject(idea).catch(fail).finally(() => setMaking(false))
@@ -180,7 +180,7 @@ function IdeaView({ idea }: { idea: Idea }) {
           ))}
         </div>
       ) : null}
-      <Button variant="outline" size="sm" className="border-[#4a2a2e] bg-transparent text-destructive dark:border-[#4a2a2e] dark:bg-transparent" onClick={() => deleteIdea(idea)}>
+      <Button variant="outline" size="sm" className="border-destructive/40 bg-transparent text-destructive" onClick={() => deleteIdea(idea)}>
         {t('deleteIdea')}
       </Button>
     </>

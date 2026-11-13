@@ -1,5 +1,14 @@
 package bio.anode.ideagenerator;
 
+import bio.anode.ideagenerator.config.Security;
+import bio.anode.ideagenerator.model.Lead;
+import bio.anode.ideagenerator.repository.IdeaRepository;
+import bio.anode.ideagenerator.repository.LeadRepository;
+import bio.anode.ideagenerator.repository.TemplateRepository;
+import bio.anode.ideagenerator.repository.TenantRepository;
+import bio.anode.ideagenerator.service.Ai;
+import bio.anode.ideagenerator.service.JudgeService;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -75,7 +84,7 @@ class OauthTest {
     @TestConfiguration
     static class Fakes {
         @Bean
-        Engine.Io io() {
+        Ai.Io io() {
             Providers.Chat chat = r -> {
                 calls.add(r);
                 String v = switch (r.schemaName()) {
@@ -89,7 +98,7 @@ class OauthTest {
                 return new ChatResult(Js.parse(v), 0.001);
             };
             // The real shared-server page fetch, so the private-address guard is what is tested.
-            return new Engine.Io(s -> chat, url -> Extract.fetchPage(url, true), g -> List.of(), p -> {
+            return new Ai.Io(s -> chat, url -> Extract.fetchPage(url, true), g -> List.of(), p -> {
                 throw new AssertionError("reveal on a shared server");
             }, false, q -> List.of());
         }
@@ -98,9 +107,15 @@ class OauthTest {
     @Autowired
     WebApplicationContext context;
     @Autowired
-    Repo repo;
+    TenantRepository tenants;
     @Autowired
-    Engine engine;
+    TemplateRepository templates;
+    @Autowired
+    IdeaRepository ideas;
+    @Autowired
+    LeadRepository leads;
+    @Autowired
+    JudgeService judge;
     MockMvc mvc;
     /** Every response body, to check that no secret ever leaves. */
     final List<String> seen = new ArrayList<>();
@@ -138,7 +153,7 @@ class OauthTest {
     }
 
     String tenant(String name) {
-        return repo.login("github", "id-" + name + "-" + System.nanoTime(), name, null);
+        return tenants.login("github", "id-" + name + "-" + System.nanoTime(), name, null);
     }
 
     @Test
@@ -158,10 +173,10 @@ class OauthTest {
 
     @Test
     void aLoginGetsItsOwnTenantOnceWithTheDefaultTemplates() throws Exception {
-        String a = repo.login("github", "4242", "alice", "a@example.com");
-        assertEquals(a, repo.login("github", "4242", "alice", "a@example.com"), "same identity, same tenant");
-        assertNotEquals(a, repo.login("google", "4242", "alice", "a@example.com"), "no merging by email or id across providers");
-        assertEquals(4, repo.listTemplates(a).size());
+        String a = tenants.login("github", "4242", "alice", "a@example.com");
+        assertEquals(a, tenants.login("github", "4242", "alice", "a@example.com"), "same identity, same tenant");
+        assertNotEquals(a, tenants.login("google", "4242", "alice", "a@example.com"), "no merging by email or id across providers");
+        assertEquals(4, templates.list(a).size());
         JsonNode me = json(get("/api/me").with(as(a)), 200);
         assertEquals("oauth", me.path("mode").asString());
         assertEquals("alice", me.path("name").asString());
@@ -181,10 +196,10 @@ class OauthTest {
         long board = json(w(post("/api/boards"), a, Map.of("title", "A-board", "goal", "A-goal")), 200).path("board").path("id").asLong();
         long idea = json(w(post("/api/boards/" + board + "/seed"), a, Map.of("text", "A-idea")), 200).path("idea").path("id").asLong();
         long idea2 = json(w(post("/api/boards/" + board + "/seed"), a, Map.of("text", "A-idea-2")), 200).path("idea").path("id").asLong();
-        engine.idle();
+        judge.idle();
         long template = json(w(post("/api/templates"), a, Map.of("name", "A-template", "system", "s", "expand", "e", "combine", "c")), 200)
                 .path("template").path("id").asLong();
-        long lead = repo.replaceLeads(a, board, "research", List.of(new Repo.LeadDraft("A-lead", "s", "h", "https://example.com", Map.of())))
+        long lead = leads.replace(a, board, "research", List.of(new Lead.Draft("A-lead", "s", "h", "https://example.com", Map.of())))
                 .getFirst().id();
         json(w(put("/api/settings"), a, Map.of("keys", Map.of("anthropic", "sk-A-secret"), "scientistKey", "ais_A_secret")), 200);
         json(w(put("/api/settings"), b, Map.of("keys", Map.of("openrouter", "sk-B-secret"))), 200);
@@ -227,7 +242,7 @@ class OauthTest {
         JsonNode announced = json(w(post("/api/ideas/" + bIdea + "/announce"), b, Map.of("boardIds", List.of(board))), 200);
         assertEquals(0, announced.path("guests").size());
         assertEquals(List.of(board), Js.arr(announced.path("skipped")).stream().map(JsonNode::asLong).toList());
-        engine.idle();
+        judge.idle();
 
         // Alice's data is untouched, and her dashboard and report have it.
         JsonNode mine = json(get("/api/boards/" + board).with(as(a)), 200);
@@ -264,18 +279,18 @@ class OauthTest {
         assertEquals("url_unreadable", json(w(post("/api/boards/" + board + "/seed"), a, Map.of("text", "http://127.0.0.1:8300/api/settings")), 422)
                 .path("code").asString());
         long plain = json(w(post("/api/boards/" + board + "/seed"), a, Map.of("text", "Vanlig")), 200).path("idea").path("id").asLong();
-        engine.idle();
+        judge.idle();
         assertEquals("private_address", json(w(post("/api/ideas/" + plain + "/scientist"), a, null), 400).path("code").asString());
 
         scores = new int[]{5, 4, 5};
         long gold;
         try {
             gold = json(w(post("/api/boards/" + board + "/seed"), a, Map.of("text", "Guldidé")), 200).path("idea").path("id").asLong();
-            engine.idle();
+            judge.idle();
         } finally {
             scores = new int[]{3, 3, 3};
         }
-        String path = repo.getIdea(a, gold).projectPath();
+        String path = ideas.find(a, gold).projectPath();
         assertEquals("guldet", path, "only the folder name: no server path in the JSON");
         assertTrue(Files.isDirectory(dataDir.resolve("tenants").resolve(a).resolve("projects").resolve(path)));
         assertFalse(call(get("/api/boards/" + board).with(as(a)), 200).getContentAsString().contains(dataDir.toString()), "no server path anywhere");

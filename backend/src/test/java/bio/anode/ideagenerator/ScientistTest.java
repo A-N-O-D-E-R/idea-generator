@@ -1,5 +1,7 @@
 package bio.anode.ideagenerator;
 
+import bio.anode.ideagenerator.model.Idea;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.sun.net.httpserver.HttpServer;

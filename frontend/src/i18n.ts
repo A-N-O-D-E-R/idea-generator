@@ -5,7 +5,7 @@ import type { Lang } from './types'
 
 const DICT: Record<Lang, Record<string, string>> = {
   sv: {
-    appName: 'Idégeneratorn',
+    appName: 'MUSE', appTagline: 'Multiple Unconventional Solutions Explorer',
     seedPlaceholder: 'Skriv en idé eller klistra in en länk … (Enter)',
     readingPage: 'Läser sidan …',
     thinking: 'Tänker …',
@@ -114,7 +114,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     firstRun: 'Välkommen! Börja med en tavla och ett mål.',
   },
   en: {
-    appName: 'Idea Generator',
+    appName: 'MUSE', appTagline: 'Multiple Unconventional Solutions Explorer',
     seedPlaceholder: 'Write an idea or paste a link … (Enter)',
     readingPage: 'Reading the page …',
     thinking: 'Thinking …',

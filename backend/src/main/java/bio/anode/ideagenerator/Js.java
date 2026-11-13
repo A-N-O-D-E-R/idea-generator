@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import lombok.experimental.UtilityClass;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -17,9 +18,8 @@ import tools.jackson.databind.node.ObjectNode;
  * JSON plus the handful of JavaScript semantics the upstream server relies on
  * (String(), Number(), trim(), slice()), so untrusted input is coerced the same way.
  */
-public final class Js {
-    private Js() {}
-
+@UtilityClass
+public class Js {
     public static final JsonMapper M = JsonMapper.builder().build();
 
     public static JsonNode parse(String s) {

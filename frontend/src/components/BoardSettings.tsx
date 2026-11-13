@@ -181,7 +181,7 @@ export function BoardSettings() {
           ))}
         </div>
       </Fieldset>
-      <Button variant="outline" size="sm" className="border-[#4a2a2e] bg-transparent text-destructive dark:border-[#4a2a2e] dark:bg-transparent" onClick={deleteBoard}>
+      <Button variant="outline" size="sm" className="border-destructive/40 bg-transparent text-destructive" onClick={deleteBoard}>
         {t('deleteBoard')}
       </Button>
     </Dlg>
