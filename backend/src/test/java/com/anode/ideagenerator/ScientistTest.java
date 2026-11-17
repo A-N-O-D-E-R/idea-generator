@@ -81,4 +81,44 @@ class ScientistTest {
         AppError e = assertThrows(AppError.class, () -> Scientist.submit("http://127.0.0.1:9", "k", idea(), ""));
         assertEquals("scientist_unreachable", e.code);
     }
+
+    @Test
+    void findingsAreTheIdeasHypothesesRelatedWorkAndRisks() {
+        var f = Scientist.findings(Js.parse("""
+                [{"Title":"A","Short Hypothesis":"h1","Related Work":"w1","Risk Factors and Limitations":"r1"},
+                 {"Title":"B","Short Hypothesis":" ","Related Work":"w2"},
+                 {"Title":"C","Short Hypothesis":"h3","Risk Factors and Limitations":"r3"}]"""));
+        assertEquals(List.of("h1", "h3"), f.hypotheses());
+        assertEquals("A: w1\n\nB: w2", f.relatedWork());
+        assertEquals(List.of("r1", "r3"), f.riskFactors());
+        assertEquals(new Scientist.Findings(List.of(), "", List.of()), Scientist.findings(Js.parse("null")));
+    }
+
+    @Test
+    void theNoveltyVerdictFollowsTheJudgesOriginality() {
+        assertEquals("unclear", Scientist.verdict(null));
+        assertEquals("known", Scientist.verdict(1));
+        assertEquals("known", Scientist.verdict(2));
+        assertEquals("incremental", Scientist.verdict(3));
+        assertEquals("novel", Scientist.verdict(4));
+        assertEquals("novel", Scientist.verdict(5));
+    }
+
+    @Test
+    void fetchReadsAJobsStatusAndResult() {
+        server.createContext("/v1/jobs/j1", ex -> {
+            auth.set(ex.getRequestHeaders().getFirst("Authorization"));
+            byte[] out = "{\"status\":\"DONE\",\"result\":[{\"Title\":\"T\"}]}".getBytes(StandardCharsets.UTF_8);
+            ex.sendResponseHeaders(200, out.length);
+            ex.getResponseBody().write(out);
+            ex.close();
+        });
+        Scientist.State s = Scientist.fetch(url(), "ais_k", "j1", false);
+        assertEquals("Bearer ais_k", auth.get());
+        assertEquals("DONE", s.status());
+        assertTrue(s.ended());
+        assertEquals("T", s.result().path(0).path("Title").asString());
+        assertFalse(new Scientist.State("RUNNING", null, "").ended());
+        assertFalse(new Scientist.State("PAUSED", null, "").ended());
+    }
 }

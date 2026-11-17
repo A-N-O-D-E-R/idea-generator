@@ -6,6 +6,7 @@ import com.anode.ideagenerator.config.Mode;
 import com.anode.ideagenerator.model.Board;
 import com.anode.ideagenerator.repository.BoardRepository;
 import com.anode.ideagenerator.repository.IdeaRepository;
+import com.anode.ideagenerator.repository.ResearchRepository;
 import com.anode.ideagenerator.repository.SettingsRepository;
 import com.anode.ideagenerator.repository.SpendRepository;
 import com.anode.ideagenerator.repository.TemplateRepository;
@@ -31,6 +32,7 @@ final class TestApp {
     final BoardRepository boards;
     final IdeaRepository ideas;
     final SpendRepository spend;
+    final ResearchRepository research;
     final SettingsService settings;
     final EventBus bus = new EventBus();
 
@@ -43,6 +45,7 @@ final class TestApp {
         boards = new BoardRepository(db);
         ideas = new IdeaRepository(db, tx, boards);
         spend = new SpendRepository(db);
+        research = new ResearchRepository(db);
         try {
             settings = new SettingsService(new SettingsRepository(db, tx), new Secrets("", false), null);
         } catch (Exception e) {
@@ -61,8 +64,8 @@ final class TestApp {
         StaticListableBeanFactory beans = new StaticListableBeanFactory();
         beans.addBean("io", io);
         Ai ai = new Ai(settings, spend, new Mode(false), beans.getBeanProvider(Ai.Io.class));
-        JudgeService judge = new JudgeService(ai, boards, ideas, new ProjectService(ai, boards, ideas, bus), bus);
+        JudgeService judge = new JudgeService(ai, boards, ideas, new ProjectService(ai, boards, ideas, bus, research), research, bus);
         BoardService boardService = new BoardService(ai, boards, ideas, null, templates, spend, judge, bus);
-        return new EvolutionService(boards, ideas, new IdeaService(ai, boards, ideas, boardService, judge, bus), judge);
+        return new EvolutionService(boards, ideas, new IdeaService(ai, boards, ideas, boardService, judge, new com.anode.ideagenerator.service.ResearchService(ai, boards, ideas, research, judge), bus), judge);
     }
 }

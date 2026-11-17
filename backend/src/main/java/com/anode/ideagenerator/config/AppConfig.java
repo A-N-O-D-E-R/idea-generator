@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Configuration;
 
 /** The beans that need constructor arguments from properties or a test seam; everything else is a component. */
 @Configuration
+@org.springframework.scheduling.annotation.EnableScheduling
 public class AppConfig {
 
     @Bean

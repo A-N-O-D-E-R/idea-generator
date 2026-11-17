@@ -298,11 +298,18 @@ public final class Llm {
 
     /** guidance: the board's own jury instructions, on top of the fixed scale. */
     public Out<Judgement> judge(String model, String goal, Pitch idea, String lang, String guidance, List<String> vocabulary) {
+        return judge(model, goal, idea, lang, guidance, vocabulary, "");
+    }
+
+    /** research: what an AI scientist found about the idea (prior work, hypotheses, risks), or empty. */
+    public Out<Judgement> judge(String model, String goal, Pitch idea, String lang, String guidance, List<String> vocabulary, String research) {
         String g = Js.trim(guidance == null ? "" : guidance);
         String system = g.isEmpty() ? JUDGE_SYSTEM : JUDGE_SYSTEM + "\n\nAdditional guidance from this board's facilitator:\n" + g;
         String user = join(
                 !Js.trim(goal).isEmpty() ? "The board's goal (the general direction): " + Js.trim(goal) : "",
                 "The idea:\n" + fmtIdea(idea),
+                Js.trim(research == null ? "" : research).isEmpty() ? ""
+                        : Js.trim(research) + "\nWeigh it: close prior work lowers originality, concrete risks lower feasibility, a clear testable hypothesis raises it.",
                 "Write the reason in the language of the idea; if unclear, in " + LANG_NAME.get(lang) + ".",
                 vocabulary != null && !vocabulary.isEmpty() ? "Keyword vocabulary in use (reuse when one fits): " + String.join(", ", vocabulary) : "");
         ChatResult r = chat.chat(new ChatRequest(model, system, user, "judgement", JUDGE_SCHEMA, 0.2, 400, null));

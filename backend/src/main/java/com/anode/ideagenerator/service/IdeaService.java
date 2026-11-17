@@ -37,6 +37,7 @@ public class IdeaService {
     private final IdeaRepository ideas;
     private final BoardService boardService;
     private final JudgeService judge;
+    private final ResearchService research;
     private final EventBus bus;
 
     private List<String> titles(Board board) {
@@ -197,23 +198,8 @@ public class IdeaService {
         return Js.obj("board", boards.find(t, board.id()), "idea", root);
     }
 
-    /** Send an idea to perso/ai-scientist as an ideation job: {job: {id, url, status}}. */
+    /** Send an idea to ai-scientist as an ideation job (the research gate): {job: {id, url, status}}. */
     public Map<String, Object> toScientist(String t, long ideaId) {
-        Idea idea = ideas.require(t, ideaId);
-        Board board = boards.require(t, idea.boardId());
-        AppSettings s = ai.settings(board);
-        String key = !s.scientistKey().isEmpty() || s.shared() ? s.scientistKey()
-                : Objects.requireNonNullElse(Providers.env.apply("AI_SCIENTIST_API_KEY"), "");
-        if (s.scientistUrl().isEmpty() || key.isEmpty()) {
-            throw new AppError(400, "no_scientist", "Set the AI Scientist address and API key in the app settings");
-        }
-        if (s.shared()) {
-            try {
-                Providers.requirePublic(s.scientistUrl());
-            } catch (ProviderError e) {
-                throw new AppError(400, e.code, messageOf(e));
-            }
-        }
-        return Js.obj("job", Scientist.submit(s.scientistUrl(), key, idea, board.goal(), s.shared()));
+        return Js.obj("job", research.submit(t, ideaId));
     }
 }

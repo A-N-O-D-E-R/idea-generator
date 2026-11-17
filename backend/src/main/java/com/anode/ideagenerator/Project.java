@@ -212,6 +212,12 @@ public final class Project {
 
     /** Returns the absolute path of the new folder. */
     public static String writeProject(String root, Brief brief, Idea idea, String goal, List<Idea> lineage, String lang, boolean gitInit) throws IOException {
+        return writeProject(root, brief, idea, goal, lineage, lang, gitInit, null);
+    }
+
+    /** research: the finished research gate's {@code research} block (idea-brief.schema.json), or null. */
+    public static String writeProject(String root, Brief brief, Idea idea, String goal, List<Idea> lineage, String lang, boolean gitInit,
+                                      Map<String, Object> research) throws IOException {
         String expanded = expandHome(root);
         if (!Path.of(expanded).isAbsolute()) {
             throw new IOException("The projects folder must be an absolute path or start with ~ (got \"" + root + "\")");
@@ -222,8 +228,9 @@ public final class Project {
         Files.writeString(dir.resolve("CLAUDE.md"), renderClaudeMd(brief, idea, goal, lineage, lang, date));
         Files.writeString(dir.resolve("README.md"), String.join("\n",
                 "# " + brief.name(), "", brief.oneLiner(), "", "## " + t.start(), "", "```bash", "cd \"" + dir + "\"", "claude", "```", "", t.then(), ""));
-        Files.writeString(dir.resolve("idea.json"), Js.M.writerWithDefaultPrettyPrinter().writeValueAsString(
-                Js.obj("createdAt", Js.isoNow(), "goal", goal, "idea", idea, "lineage", lineage, "brief", brief)) + "\n");
+        Map<String, Object> ideaJson = Js.obj("createdAt", Js.isoNow(), "goal", goal, "idea", idea, "lineage", lineage, "brief", brief);
+        if (research != null) ideaJson.put("research", research);
+        Files.writeString(dir.resolve("idea.json"), Js.M.writerWithDefaultPrettyPrinter().writeValueAsString(ideaJson) + "\n");
         Files.writeString(dir.resolve(".gitignore"), String.join("\n",
                 "node_modules/", ".env", ".DS_Store", "# Obsidian-vault: arbetsanteckningar, aldrig i repot", "vault/", ".obsidian/", ""));
         Files.createDirectory(dir.resolve("vault"));

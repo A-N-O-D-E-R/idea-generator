@@ -5,9 +5,11 @@ import static com.anode.ideagenerator.controller.Requests.longOrNull;
 
 import com.anode.ideagenerator.AppError;
 import com.anode.ideagenerator.Project;
+import com.anode.ideagenerator.Js;
 import com.anode.ideagenerator.service.IdeaService;
 import com.anode.ideagenerator.service.JudgeService;
 import com.anode.ideagenerator.service.ProjectService;
+import com.anode.ideagenerator.service.ResearchService;
 import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
@@ -32,6 +34,7 @@ class IdeaController {
     private final IdeaService ideas;
     private final JudgeService judge;
     private final ProjectService projects;
+    private final ResearchService research;
     private final CurrentTenant tenant;
 
     @PostMapping("/boards/{id:\\d+}/seed")
@@ -93,6 +96,18 @@ class IdeaController {
     @PostMapping("/ideas/{id:\\d+}/announce")
     Object announce(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
         return ideas.announce(tenant.id(), id, body(raw).path("boardIds"));
+    }
+
+    /** The research gate of an idea: {research: {status, hypotheses, relatedWork, riskFactors, noveltyVerdict, jobUrl, error}} or {research: null}. */
+    @GetMapping("/ideas/{id:\\d+}/research")
+    Object research(@PathVariable long id) {
+        return Js.obj("research", research.get(tenant.id(), id).orElse(null));
+    }
+
+    /** Look at the ideation job now, instead of waiting for the poller. */
+    @PostMapping("/ideas/{id:\\d+}/research/refresh")
+    Object refreshResearch(@PathVariable long id) {
+        return Js.obj("research", research.refresh(tenant.id(), id).orElse(null));
     }
 
     @PostMapping("/ideas/{id:\\d+}/scientist")

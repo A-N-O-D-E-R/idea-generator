@@ -104,3 +104,19 @@ Keys look like `idg_<43 chars><crc32>` (a typo or a secret scanner hit is spotte
 SHA-256 is stored, at most 10 are active per tenant, a key lasts 1–365 days (default 90) and is revoked with
 `DELETE /api/api-keys/{id}`. A key cannot create, list or revoke keys: that stays a signed-in browser session's job.
 Without login (`ideagen.auth=none`) there are no keys and the endpoint answers 404.
+
+## The research gate (ai-scientist)
+
+"Send to AI Scientist" on an idea (`POST /api/ideas/{id}/scientist`) starts an ideation job at ai-scientist
+(`scientistUrl` + `scientistKey` in the settings). A background poller (`idea.research.poll-ms`, default 20 s; a
+manual `POST /api/ideas/{id}/research/refresh` does one look now) reads `GET /v1/jobs/{id}` until the job ends:
+
+- done: the ideas' *Short Hypothesis*, *Related Work* and *Risk Factors* are recorded (`GET /api/ideas/{id}/research`)
+  and the idea is **judged again with them in front of the judge** — prior work lowers originality, concrete risks
+  lower feasibility. The judge's originality sets the novelty verdict: 4–5 `novel`, 3 `incremental`, 1–2 `known`
+  (`unclear` until judged);
+- failed, cancelled, rejected or after 6 hours: the gate is `failed` with the reason.
+
+A project made from an idea whose gate is done gets a `research` block in its `idea.json`
+(`hypotheses`, `relatedWork`, `riskFactors`, `noveltyVerdict`, `jobUrl`), which matches
+`digital-factory/factory-contracts/.../idea-brief.schema.json`.

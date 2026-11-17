@@ -28,6 +28,7 @@ public class ProjectService {
     private final BoardRepository boards;
     private final IdeaRepository ideas;
     private final EventBus bus;
+    private final com.anode.ideagenerator.repository.ResearchRepository research;
 
     /**
      * The idea's project folder, or null. On a shared server projectPath holds only the folder name, inside the tenant's
@@ -55,7 +56,8 @@ public class ProjectService {
         Project.Brief brief = ai.call(board, () -> Project.writeBrief(ai.chat(board), ai.modelFor(board, "brief"), idea, board.goal(), lineage, lang)).value();
         String path;
         try {
-            path = Project.writeProject(settings.projectsRoot(), brief, idea, board.goal(), lineage, lang, ai.io().gitInit());
+            path = Project.writeProject(settings.projectsRoot(), brief, idea, board.goal(), lineage, lang, ai.io().gitInit(),
+                    research.find(t, idea.id()).filter(com.anode.ideagenerator.model.Research::done).map(com.anode.ideagenerator.model.Research::block).orElse(null));
             if (settings.shared()) path = Path.of(path).getFileName().toString();
         } catch (Exception e) {
             throw new AppError(500, "project_failed", messageOf(e));

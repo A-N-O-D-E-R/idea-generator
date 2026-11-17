@@ -8,9 +8,12 @@ import com.anode.ideagenerator.Js;
 import com.anode.ideagenerator.Llm;
 import com.anode.ideagenerator.Score;
 import com.anode.ideagenerator.model.Board;
+import com.anode.ideagenerator.Scientist;
 import com.anode.ideagenerator.model.Idea;
+import com.anode.ideagenerator.model.Research;
 import com.anode.ideagenerator.repository.BoardRepository;
 import com.anode.ideagenerator.repository.IdeaRepository;
+import com.anode.ideagenerator.repository.ResearchRepository;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +43,7 @@ public class JudgeService {
     private final BoardRepository boards;
     private final IdeaRepository ideas;
     private final ProjectService projects;
+    private final ResearchRepository research;
     private final EventBus bus;
 
     private final Object queueLock = new Object();
@@ -62,9 +66,13 @@ public class JudgeService {
         Board board = boards.require(t, idea.boardId());
         setJudging(board.id(), List.of(idea.id()), true);
         try {
+            // a finished research gate: the judge reads it, and its originality becomes the novelty verdict
+            var gate = research.find(t, idea.id()).filter(Research::done);
+            String findings = gate.map(Research::forJudge).orElse("");
             Llm.Judgement j = ai.call(board, () -> ai.llm(board).judge(ai.modelFor(board, "judge"), board.goal(), Llm.Pitch.of(idea),
-                    board.config().lang(), board.config().judgeGuidance(), ideas.keywordVocabulary(t))).value();
+                    board.config().lang(), board.config().judgeGuidance(), ideas.keywordVocabulary(t), findings)).value();
             ideas.saveJudgement(t, idea.id(), j);
+            gate.ifPresent(r -> research.verdict(idea.id(), Scientist.verdict(j.originality())));
             Map<String, Object> out = Js.obj("idea", ideas.setKeywords(t, idea.id(), j.keywords()));
             Idea judged = (Idea) out.get("idea");
             // The judge itself turns gold into a Claude Code project, if the board allows it.
