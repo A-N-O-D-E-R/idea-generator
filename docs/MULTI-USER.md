@@ -87,3 +87,20 @@ An independent review of the branch found these; all fixed, with tests in `Share
 
 Also fixed: an unconfigured provider no longer has a login route (it redirected with `client_id=unset`), and on a shared
 server `projectPath` holds only the folder name, so no server path reaches the JSON, Markdown or report.
+
+## API keys for other apps
+
+With `ideagen.auth=oauth`, another app (a script, ai-scientist, productDesigner) calls the API as a tenant without a
+browser session and without a CSRF token, using a personal key:
+
+```sh
+# 1. signed in, in the browser (or with the SPA's cookie + X-XSRF-TOKEN): create a key — shown once
+curl -X POST $BASE/api/api-keys -H 'Content-Type: application/json' -d '{"name":"productDesigner","days":90}'
+# 2. any app:
+curl $BASE/api/boards -H "Authorization: Bearer idg_..."
+```
+
+Keys look like `idg_<43 chars><crc32>` (a typo or a secret scanner hit is spotted without a database lookup), only the
+SHA-256 is stored, at most 10 are active per tenant, a key lasts 1–365 days (default 90) and is revoked with
+`DELETE /api/api-keys/{id}`. A key cannot create, list or revoke keys: that stays a signed-in browser session's job.
+Without login (`ideagen.auth=none`) there are no keys and the endpoint answers 404.

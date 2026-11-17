@@ -8,13 +8,26 @@
         <version>4.1.2</version>
         <relativePath/>
     </parent>
-    <groupId>bio.anode</groupId>
+    <groupId>io.github.a-n-o-d-e-r</groupId>
     <artifactId>idea-generator</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <name>idea-generator</name>
     <properties>
         <java.version>25</java.version>
+        <starter-collection.version>0.2.0</starter-collection.version>
     </properties>
+    <dependencyManagement>
+        <dependencies>
+            <!-- also imports the Spring AI BOM -->
+            <dependency>
+                <groupId>io.github.a-n-o-d-e-r</groupId>
+                <artifactId>springboot-starter-collection-dependencies</artifactId>
+                <version>${starter-collection.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -25,12 +38,20 @@
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
+            <groupId>io.github.a-n-o-d-e-r</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+            <exclusions>
+                <!-- not used here; its environment post-processor breaks the Spring AI config binding -->
+                <exclusion><groupId>com.okta.spring</groupId><artifactId>okta-spring-security-oauth2</artifactId></exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

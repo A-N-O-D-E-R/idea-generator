@@ -29,7 +29,12 @@ spring:
   session.jdbc.initialize-schema: never   # Flyway owns the schema (V2__sessions.sql)
   # A built frontend (../frontend/dist) is served as static files when present.
   web.resources.static-locations: file:../frontend/dist/,classpath:/static/
+# The A-N-O-D-E-R security starter builds the login chain only with ideagen.auth=oauth (none has its own small chain in
+# config/Security). A placeholder cannot compare, so the flag is looked up by the mode's name: ideagen.oauth-flag.<auth>.
+anode.security:
+  env-oidc: ${ideagen.oauth-flag.${ideagen.auth}:false}
 ideagen:
+  oauth-flag.oauth: true
   # none: one local tenant, no login, loopback only. oauth: GitHub/Google login, one tenant per person.
   auth: ${IDEAGEN_AUTH:none}
   # Tink keyset (JSON) that encrypts stored API keys; create with --generate-keyset=<file>.
