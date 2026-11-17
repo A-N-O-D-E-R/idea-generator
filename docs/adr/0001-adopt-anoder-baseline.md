@@ -28,8 +28,6 @@ Align on one baseline built on `springboot-starter-collection`:
 
 ## Consequences
 
-- The Okta jar the security starter brings is excluded in the POM: its environment post-processor breaks Spring AI's
-  configuration binding (found in ai-scientist). Revisit when the starter marks Okta optional.
 - The starter also enables `oauth2Client()`, which has its own redirect filter: the "only configured providers"
   resolver is set on both.
 - Not done here: the frontend still uses caret ranges and has no unit tests (`pnpm test` is skipped when absent);
