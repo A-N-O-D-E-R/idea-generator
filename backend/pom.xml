@@ -111,6 +111,13 @@
             <artifactId>testcontainers-postgresql</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- idea-brief.schema.json (copy of digital-factory/factory-contracts): the idea.json sent to productDesigner is validated against it -->
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+            <version>3.0.8</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

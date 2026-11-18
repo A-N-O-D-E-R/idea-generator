@@ -11,7 +11,7 @@ import type { Idea } from '@/types'
 import { Grow, RankItem, Seg, Swatch } from './Field'
 import {
   MEDAL_ICON, S, copyText, deleteIdea, emit, expand, fail, focusIdea, graph, ideaList, makeProject, notify, openBoard,
-  openDialog, rejudge, reveal, selectIdea, isShared, downloadProject, setMedal, spinoff, summarize, duel, toScientist, useStore,
+  openDialog, rejudge, reveal, selectIdea, isShared, downloadProject, setMedal, spinoff, summarize, duel, toScientist, toProductDesigner, useStore,
 } from '@/store'
 
 const H3 = ({ children }: { children: React.ReactNode }) => (
@@ -139,6 +139,20 @@ function IdeaView({ idea }: { idea: Idea }) {
             }}
           >
             {`🔬 ${t('toScientist')}`}
+          </Button>
+        ) : null}
+        {S.settings.productDesignerUrl && S.settings.productDesignerKey.stored ? (
+          <Button
+            variant="secondary"
+            className={act}
+            title={t('productDesignerHint')}
+            disabled={sending}
+            onClick={() => {
+              setSending(true)
+              toProductDesigner(idea).finally(() => setSending(false))
+            }}
+          >
+            {`📐 ${t('toProductDesigner')}`}
           </Button>
         ) : null}
       </div>

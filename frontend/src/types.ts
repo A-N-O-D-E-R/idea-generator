@@ -145,9 +145,10 @@ export type Secret = { stored: boolean }
 export type SettingsResponse = ProvidersResponse & { settings: AppSettings }
 
 /** PUT /api/settings: a secret string sets it, '' deletes it, absent keeps it. */
-export type SettingsUpdate = Omit<AppSettings, 'keys' | 'scientistKey'> & {
+export type SettingsUpdate = Omit<AppSettings, 'keys' | 'scientistKey' | 'productDesignerKey'> & {
   keys?: Partial<Record<ProviderId, string>>
   scientistKey?: string
+  productDesignerKey?: string
 }
 
 /** App settings, stored per account on the server. */
@@ -162,6 +163,9 @@ export type AppSettings = {
   /** perso/ai-scientist: base URL and personal API key (ais_...); '' = off */
   scientistUrl: string
   scientistKey: Secret
+  /** productDesigner: base URL and personal API key (pd_...) for "To productDesigner"; '' = off */
+  productDesignerUrl: string
+  productDesignerKey: Secret
   /** Folders whose sub-folders are code repos (comma or newline separated), checked before filing */
   reposRoots: string
 }

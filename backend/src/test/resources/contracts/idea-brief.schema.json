@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/A-N-O-D-E-R/digital-factory/contracts/idea-brief.schema.json",
+  "title": "Idea brief",
+  "description": "The idea.json that idea-generator writes for its best idea (goal, idea, lineage, brief), plus the optional research block ai-scientist fills in. It is what productDesigner imports to seed a Projet: the first link of the chain idea-generator -> ai-scientist -> productDesigner -> Jira -> digital-factory.",
+  "type": "object",
+  "required": ["goal", "idea", "lineage", "brief"],
+  "additionalProperties": false,
+  "properties": {
+    "createdAt": { "type": "string", "description": "ISO-8601 instant idea-generator wrote the file." },
+    "goal": { "type": "string", "description": "The board's goal the idea answers." },
+    "idea": { "$ref": "#/$defs/idea" },
+    "lineage": {
+      "type": "array",
+      "description": "The ideas this one descends from, oldest first. The first entries' sourceUrl / origin are the upstream ids kept for traceability (Projet.source_idea_url).",
+      "items": { "$ref": "#/$defs/idea" }
+    },
+    "brief": { "$ref": "#/$defs/brief" },
+    "research": { "$ref": "#/$defs/research" }
+  },
+  "$defs": {
+    "idea": {
+      "type": "object",
+      "description": "An idea on a board, as idea-generator's API returns it; unknown fields are kept.",
+      "required": ["title"],
+      "properties": {
+        "id": { "type": "integer" },
+        "boardId": { "type": "integer" },
+        "title": { "type": "string", "minLength": 1 },
+        "pitch": { "type": ["string", "null"] },
+        "kind": { "type": ["string", "null"] },
+        "sourceUrl": { "type": ["string", "null"] },
+        "originality": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
+        "feasibility": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
+        "impact": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
+        "reason": { "type": ["string", "null"] },
+        "keywords": { "type": ["array", "null"], "items": { "type": "string" } },
+        "elo": { "type": ["number", "null"] }
+      }
+    },
+    "brief": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "slug", "oneLiner", "problem", "audience", "mvp", "outOfScope", "stack", "firstSteps", "openQuestions", "risks"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "slug": { "type": "string" },
+        "oneLiner": { "type": "string" },
+        "problem": { "type": "string", "description": "-> the Map's Destination." },
+        "audience": { "type": "string" },
+        "mvp": { "type": "array", "items": { "type": "string" } },
+        "outOfScope": { "type": "array", "items": { "type": "string" }, "description": "-> Hors perimetre." },
+        "stack": { "type": "string" },
+        "firstSteps": { "type": "array", "items": { "type": "string" } },
+        "openQuestions": { "type": "array", "items": { "type": "string" }, "description": "-> the Map's Questions." },
+        "risks": { "type": "array", "items": { "type": "string" }, "description": "-> Brouillard." }
+      }
+    },
+    "research": {
+      "type": "object",
+      "description": "What ai-scientist's ideation job found out about the idea: novelty against the literature and testable hypotheses. Absent until the research gate has run.",
+      "additionalProperties": false,
+      "properties": {
+        "hypotheses": { "type": "array", "items": { "type": "string" }, "description": "The ideation job's 'Short Hypothesis' of each research idea." },
+        "relatedWork": { "type": "string", "description": "The ideas' 'Related Work', condensed." },
+        "riskFactors": { "type": "array", "items": { "type": "string" }, "description": "The ideas' 'Risk Factors' and caveats." },
+        "noveltyVerdict": {
+          "enum": ["novel", "incremental", "known", "unclear"],
+          "description": "novel: no close prior work found; incremental: close work exists, a real delta remains; known: already done; unclear: not enough evidence."
+        },
+        "jobUrl": { "type": "string", "description": "The ai-scientist ideation job, for the full result." }
+      }
+    }
+  }
+}

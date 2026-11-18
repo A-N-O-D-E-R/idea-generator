@@ -19,6 +19,8 @@ export const DEFAULTS: AppSettings = {
   workspaceRoot: '',
   scientistUrl: '',
   scientistKey: { stored: false },
+  productDesignerUrl: '',
+  productDesignerKey: { stored: false },
   reposRoots: '',
 }
 

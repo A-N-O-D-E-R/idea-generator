@@ -8,6 +8,7 @@ import com.anode.ideagenerator.Project;
 import com.anode.ideagenerator.Js;
 import com.anode.ideagenerator.service.IdeaService;
 import com.anode.ideagenerator.service.JudgeService;
+import com.anode.ideagenerator.service.ProductDesignerService;
 import com.anode.ideagenerator.service.ProjectService;
 import com.anode.ideagenerator.service.ResearchService;
 import java.nio.file.Path;
@@ -35,6 +36,7 @@ class IdeaController {
     private final JudgeService judge;
     private final ProjectService projects;
     private final ResearchService research;
+    private final ProductDesignerService productDesigner;
     private final CurrentTenant tenant;
 
     @PostMapping("/boards/{id:\\d+}/seed")
@@ -108,6 +110,13 @@ class IdeaController {
     @PostMapping("/ideas/{id:\\d+}/research/refresh")
     Object refreshResearch(@PathVariable long id) {
         return Js.obj("research", research.refresh(tenant.id(), id).orElse(null));
+    }
+
+    /** Send the idea to productDesigner (a Projet and its seeded Map): {project: {id, nom, questions, brouillard, ...}}. */
+    @PostMapping("/ideas/{id:\\d+}/product-designer")
+    Object productDesigner(@PathVariable long id, @RequestBody(required = false) byte[] raw) {
+        body(raw);
+        return productDesigner.send(tenant.id(), id);
     }
 
     @PostMapping("/ideas/{id:\\d+}/scientist")

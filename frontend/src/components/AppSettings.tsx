@@ -47,7 +47,7 @@ export function AppSettings() {
   const secret = (name: string) => (drop.has(name) ? '' : (typed[name] ?? '').trim() || undefined)
 
   async function saveFromForm(close = true) {
-    const { keys: _stored, scientistKey: _scientist, ...plain } = structuredClone(s)
+    const { keys: _stored, scientistKey: _scientist, productDesignerKey: _designer, ...plain } = structuredClone(s)
     const out: SettingsUpdate = { ...plain, keys: {} }
     for (const p of PROVIDER_IDS) {
       if (HAS_KEY.includes(p)) {
@@ -62,12 +62,15 @@ export function AppSettings() {
     out.scientistUrl = out.scientistUrl.trim().replace(/\/+$/, '')
     const sk = secret('scientist')
     if (sk !== undefined) out.scientistKey = sk
+    out.productDesignerUrl = out.productDesignerUrl.trim().replace(/\/+$/, '')
+    const pk = secret('productdesigner')
+    if (pk !== undefined) out.productDesignerKey = pk
     out.reposRoots = out.reposRoots.trim()
     out.maxUsdPerDay = Number(budget)
     const res = await saveSettings(out)
     S.providers = res
     S.settings = res.settings
-    setS((cur) => ({ ...cur, keys: res.settings.keys, scientistKey: res.settings.scientistKey }))
+    setS((cur) => ({ ...cur, keys: res.settings.keys, scientistKey: res.settings.scientistKey, productDesignerKey: res.settings.productDesignerKey }))
     setTyped({})
     setDrop(new Set())
     emit()
@@ -172,6 +175,17 @@ export function AppSettings() {
         <Field label={t('apiKey')}>
           <div className="flex flex-wrap items-center gap-2">
             <KeyInput name="scientist" stored={s.scientistKey.stored} placeholder="ais_…" typed={typed} setTyped={setTyped} drop={drop} setDrop={setDrop} />
+          </div>
+        </Field>
+      </Fieldset>
+      <Fieldset legend="productDesigner">
+        <small className="text-muted-foreground">{t('productDesignerNote')}</small>
+        <Field label={t('scientistUrl')}>
+          <Input value={s.productDesignerUrl} placeholder="http://localhost:8080" onChange={(e) => setS({ ...s, productDesignerUrl: e.target.value })} />
+        </Field>
+        <Field label={t('apiKey')}>
+          <div className="flex flex-wrap items-center gap-2">
+            <KeyInput name="productdesigner" stored={s.productDesignerKey.stored} placeholder="pd_…" typed={typed} setTyped={setTyped} drop={drop} setDrop={setDrop} />
           </div>
         </Field>
       </Fieldset>

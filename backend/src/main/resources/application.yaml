@@ -42,6 +42,9 @@ ideagen:
   keyset-file: ${IDEAGEN_KEYSET_FILE:}
   # auth=oauth: projects of each tenant go to <data-dir>/tenants/<id>/projects (downloadable as zip).
   data-dir: ${IDEAGEN_DATA_DIR:data}
+  # This app's own public URL (e.g. https://ideas.example.org): "To productDesigner" names the idea <url>/boards/<b>/ideas/<i> upstream of the
+  # Projet it creates there, which is how a merged PR is traced back to its idea. Empty: productDesigner takes the idea's first source link.
+  public-url: ${IDEAGEN_PUBLIC_URL:}
   # auth=oauth: who may sign in, as stable ids "github:<numeric id>,google:<sub>" (a refused sign-in logs its id).
   # Empty = open sign-up (logged as a warning at startup).
   allowed-logins: ${IDEAGEN_ALLOWED_LOGINS:}

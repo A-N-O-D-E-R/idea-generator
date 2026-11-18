@@ -79,6 +79,8 @@ public final class Providers {
                               String workspaceRoot,
                               /* perso/ai-scientist: base URL and personal API key (ais_...); "" = off. Encrypted at rest, like the other keys. */
                               String scientistUrl, String scientistKey,
+                              /* productDesigner: base URL and personal API key (pd_...) for "Send to productDesigner"; "" = off. Encrypted at rest. */
+                              String productDesignerUrl, String productDesignerKey,
                               /* folders whose sub-folders are code repos, comma or newline separated; checked before filing */
                               String reposRoots,
                               /* a shared server (ideagen.auth=oauth): no environment keys, no private or local addresses */
@@ -96,28 +98,32 @@ public final class Providers {
             // Sonnet 5.5: calibrated judge, idiomatic Swedish. Grok: the only route that can search X.
             Map<String, String> models = new LinkedHashMap<>();
             for (String r : ROLES) models.put(r, r.equals("x") ? "openrouter:x-ai/grok-4.3" : SONNET);
-            return new AppSettings(new LinkedHashMap<>(), baseUrls, models, "~/Projekt/idea-projects", 5, "", "", "", "", false);
+            return new AppSettings(new LinkedHashMap<>(), baseUrls, models, "~/Projekt/idea-projects", 5, "", "", "", "", "", "", false);
         }
 
         public AppSettings withProjectsRoot(String root) {
-            return new AppSettings(keys, baseUrls, models, root, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey, reposRoots, shared);
+            return new AppSettings(keys, baseUrls, models, root, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey, productDesignerUrl, productDesignerKey, reposRoots, shared);
         }
 
         public AppSettings withWorkspaceRoot(String root) {
-            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, root, scientistUrl, scientistKey, reposRoots, shared);
+            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, root, scientistUrl, scientistKey, productDesignerUrl, productDesignerKey, reposRoots, shared);
         }
 
         public AppSettings withScientist(String url, String key) {
-            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, url, key, reposRoots, shared);
+            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, url, key, productDesignerUrl, productDesignerKey, reposRoots, shared);
+        }
+
+        public AppSettings withProductDesigner(String url, String key) {
+            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey, url, key, reposRoots, shared);
         }
 
         /** The shared-server view: projects confined to the tenant's folder, no workspace, no repo scan. */
         public AppSettings sharedWith(String tenantProjects) {
-            return new AppSettings(keys, baseUrls, models, tenantProjects, maxUsdPerDay, "", scientistUrl, scientistKey, "", true);
+            return new AppSettings(keys, baseUrls, models, tenantProjects, maxUsdPerDay, "", scientistUrl, scientistKey, productDesignerUrl, productDesignerKey, "", true);
         }
 
         public AppSettings withReposRoots(String roots) {
-            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey, roots, shared);
+            return new AppSettings(keys, baseUrls, models, projectsRoot, maxUsdPerDay, workspaceRoot, scientistUrl, scientistKey, productDesignerUrl, productDesignerKey, roots, shared);
         }
     }
 
@@ -184,6 +190,8 @@ public final class Providers {
                 workspace.matches("^(~/|/).*") ? workspace : d.workspaceRoot(),
                 Js.str(r.path("scientistUrl"), 500).matches("^https?://.*") ? Js.str(r.path("scientistUrl"), 500).replaceAll("/+$", "") : d.scientistUrl(),
                 Js.str(r.path("scientistKey"), 500),
+                Js.str(r.path("productDesignerUrl"), 500).matches("^https?://.*") ? Js.str(r.path("productDesignerUrl"), 500).replaceAll("/+$", "") : d.productDesignerUrl(),
+                Js.str(r.path("productDesignerKey"), 500),
                 Js.str(r.path("reposRoots"), 2000), false);
     }
 

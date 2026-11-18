@@ -25,7 +25,8 @@ import tools.jackson.databind.node.ObjectNode;
 @Slf4j
 public class SettingsService {
     static final String SCIENTIST = "scientist";
-    static final List<String> PLAIN = List.of("baseUrls", "models", "projectsRoot", "maxUsdPerDay", "workspaceRoot", "scientistUrl", "reposRoots");
+    static final String PRODUCT_DESIGNER = "productdesigner";
+    static final List<String> PLAIN = List.of("baseUrls", "models", "projectsRoot", "maxUsdPerDay", "workspaceRoot", "scientistUrl", "productDesignerUrl", "reposRoots");
 
     private final SettingsRepository repo;
     private final Secrets secrets;
@@ -77,6 +78,7 @@ public class SettingsService {
         ObjectNode keys = raw.putObject("keys");
         for (Provider p : keyed()) if (plain.containsKey(p.id())) keys.put(p.id(), plain.get(p.id()));
         raw.put("scientistKey", plain.getOrDefault(SCIENTIST, ""));
+        raw.put("productDesignerKey", plain.getOrDefault(PRODUCT_DESIGNER, ""));
         AppSettings s = Providers.mergeAppSettings(raw);
         return shared() ? s.sharedWith(projectsOf(t).toString()) : s;
     }
@@ -88,6 +90,7 @@ public class SettingsService {
         o.set("models", Js.tree(s.models()));
         o.put("maxUsdPerDay", s.maxUsdPerDay());
         o.put("scientistUrl", s.scientistUrl());
+        o.put("productDesignerUrl", s.productDesignerUrl());
         if (!s.shared()) { // server paths are nobody's business on a shared server
             o.put("projectsRoot", s.projectsRoot());
             o.put("workspaceRoot", s.workspaceRoot());
@@ -104,6 +107,7 @@ public class SettingsService {
         for (Provider p : keyed()) keys.putObject(p.id()).put("stored", s.keys().containsKey(p.id()));
         o.setAll(plain(s));
         o.putObject("scientistKey").put("stored", !s.scientistKey().isEmpty());
+        o.putObject("productDesignerKey").put("stored", !s.productDesignerKey().isEmpty());
         return o;
     }
 
@@ -120,6 +124,7 @@ public class SettingsService {
         Map<String, byte[]> changes = new LinkedHashMap<>();
         for (Provider p : keyed()) secretChange(changes, t, p.id(), body.path("keys").path(p.id()));
         secretChange(changes, t, SCIENTIST, body.path("scientistKey"));
+        secretChange(changes, t, PRODUCT_DESIGNER, body.path("productDesignerKey"));
         repo.save(t, json, changes);
     }
 

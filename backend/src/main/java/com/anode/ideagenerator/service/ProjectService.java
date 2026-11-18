@@ -40,6 +40,37 @@ public class ProjectService {
         return s.shared() ? Path.of(s.projectsRoot()).resolve(p.getFileName().toString()) : p;
     }
 
+    /**
+     * The idea as {@code idea.json} (goal, idea, lineage, brief, and the research block once the gate is done), for the
+     * hand-off to productDesigner. An idea that already has a project folder gives its own idea.json, so the brief is not written
+     * (and paid for) twice; otherwise the brief is written now. The research block always comes from the gate as it stands.
+     */
+    public tools.jackson.databind.node.ObjectNode ideaJson(String t, long ideaId) {
+        Idea idea = ideas.require(t, ideaId);
+        Board board = boards.require(t, idea.boardId());
+        AppSettings settings = ai.settings(board);
+        tools.jackson.databind.node.ObjectNode doc = null;
+        Path folder = projectFolder(settings, idea);
+        if (folder != null && Files.isRegularFile(folder.resolve("idea.json"))) {
+            try {
+                if (Js.parse(Files.readString(folder.resolve("idea.json"))) instanceof tools.jackson.databind.node.ObjectNode existing) doc = existing;
+            } catch (IOException | RuntimeException e) {
+                // unreadable: write the brief again
+            }
+        }
+        if (doc == null) {
+            List<Idea> lineage = ideas.lineage(t, idea.id());
+            String lang = board.config().lang();
+            Project.Brief brief = ai.call(board, () -> Project.writeBrief(ai.chat(board), ai.modelFor(board, "brief"), idea, board.goal(), lineage, lang)).value();
+            doc = Js.tree(Js.obj("createdAt", Js.isoNow(), "goal", board.goal(), "idea", idea, "lineage", lineage, "brief", brief));
+        }
+        final tools.jackson.databind.node.ObjectNode result = doc;
+        result.remove("research");
+        research.find(t, idea.id()).filter(com.anode.ideagenerator.model.Research::done)
+                .ifPresent(r -> result.set("research", Js.tree(r.block())));
+        return result;
+    }
+
     public Map<String, Object> create(String t, long ideaId) {
         return create(t, ideas.require(t, ideaId));
     }

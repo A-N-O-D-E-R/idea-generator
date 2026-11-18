@@ -416,6 +416,20 @@ export async function toScientist(idea: Idea) {
   }
 }
 
+/** Hand the idea to productDesigner: a project with a seeded map (the idea.json import). */
+export async function toProductDesigner(idea: Idea) {
+  try {
+    const { project } = await api<{ project: { id: number; nom: string; questions: number; brouillard: number } }>(
+      'POST',
+      `/api/ideas/${idea.id}/product-designer`,
+      {},
+    )
+    notify(t('productDesignerSent', { name: project.nom, q: project.questions, b: project.brouillard }), 'good', 9000)
+  } catch (e) {
+    fail(e)
+  }
+}
+
 export async function spinoff(idea: Idea) {
   try {
     const r = await api<{ board: Board }>('POST', `/api/ideas/${idea.id}/spinoff`, {})

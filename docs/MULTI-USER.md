@@ -120,3 +120,17 @@ manual `POST /api/ideas/{id}/research/refresh` does one look now) reads `GET /v1
 A project made from an idea whose gate is done gets a `research` block in its `idea.json`
 (`hypotheses`, `relatedWork`, `riskFactors`, `noveltyVerdict`, `jobUrl`), which matches
 `digital-factory/factory-contracts/.../idea-brief.schema.json`.
+
+## Send to productDesigner
+
+"To productDesigner" on an idea (`POST /api/ideas/{id}/product-designer`) hands the idea to the design step of the chain: it becomes
+a **Projet with a seeded Map** there (problem → Destination, open questions → Questions, out of scope → Hors périmètre, risks and
+the research block → Brouillard, the research as an artefact). Set the address and a personal key (`pd_...`, created in productDesigner
+with `POST /api/cles-api`) in the app settings; the key is stored encrypted, like the provider keys, and never shown again.
+
+The document sent is the idea's `idea.json` (goal, idea, lineage, brief, and `research` once the research gate is done), validated by
+productDesigner against `idea-brief.schema.json` (digital-factory/factory-contracts). An idea that already has a project folder sends its own
+`idea.json`; otherwise the brief is written now, which is one LLM call on the tenant's key. The research block always reflects the gate as it
+stands. `IDEAGEN_PUBLIC_URL` (`ideagen.public-url`) names the idea upstream (`<url>/boards/<b>/ideas/<i>`): productDesigner keeps it as the
+Projet's source (traceability to the merged PR) and refuses the same source twice (409, `already_imported`). Without it productDesigner uses
+the first source link of the idea's lineage.
