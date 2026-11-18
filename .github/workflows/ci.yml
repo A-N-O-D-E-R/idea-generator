@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   ci:
-    uses: A-N-O-D-E-R/springboot-starter-collection/.github/workflows/reusable-ci.yml@master # → @v0.2.0 once released
+    uses: A-N-O-D-E-R/springboot-starter-collection/.github/workflows/reusable-ci.yml@v0.3.0
     with:
       maven-dir: backend
       frontend-dir: frontend

@@ -14,7 +14,7 @@
     <name>idea-generator</name>
     <properties>
         <java.version>25</java.version>
-        <starter-collection.version>0.2.0</starter-collection.version>
+        <starter-collection.version>0.3.0</starter-collection.version>
     </properties>
     <dependencyManagement>
         <dependencies>
