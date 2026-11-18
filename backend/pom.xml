@@ -10,7 +10,7 @@
     </parent>
     <groupId>io.github.a-n-o-d-e-r</groupId>
     <artifactId>idea-generator</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <name>idea-generator</name>
     <properties>
         <java.version>25</java.version>

@@ -7,7 +7,7 @@ A port of the `idea-generator-2` Node server. The HTTP contract (routes, bodies,
 ```bash
 export JAVA_HOME=~/.sdkman/candidates/java/25.0.2-oracle
 mvn -o package                              # also runs the tests
-java -jar target/idea-generator-0.2.0.jar   # http://127.0.0.1:8300
+java -jar target/idea-generator-0.3.0.jar   # http://127.0.0.1:8300
 ```
 
 Environment variables:
@@ -22,7 +22,7 @@ Environment variables:
   `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD`. Flyway owns the schema
   (`src/main/resources/db/migration`).
 - `IDEAGEN_KEYSET_FILE`: the Tink keyset that encrypts stored API keys. Create one with
-  `java -jar target/idea-generator-0.2.0.jar --generate-keyset=<file>` (written owner-only, never overwritten). Without
+  `java -jar target/idea-generator-0.3.0.jar --generate-keyset=<file>` (written owner-only, never overwritten). Without
   it, an ephemeral keyset is used and a warning is logged: stored keys are lost on restart.
 - Provider keys as a fallback for the keys stored in the settings: `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, `CUSTOM_API_KEY`.
 - `ANTHROPIC_BASE_URL`, read the way the SDK reads it.
@@ -63,7 +63,7 @@ Postgres container (Testcontainers, `TestDb`) is shared by the whole run, and ea
 ## Calibrate the judge (costs money)
 
 ```bash
-java -cp target/idea-generator-0.2.0.jar -Dloader.main=com.anode.ideagenerator.CalibrateJudge \
+java -cp target/idea-generator-0.3.0.jar -Dloader.main=com.anode.ideagenerator.CalibrateJudge \
      org.springframework.boot.loader.launch.PropertiesLauncher [--model provider:model]
 ```
 

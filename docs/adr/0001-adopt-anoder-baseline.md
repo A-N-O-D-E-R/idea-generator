@@ -13,7 +13,7 @@ access, build and frontend tooling their own way. idea-generator had a hand-writ
 Align on one baseline built on `springboot-starter-collection`:
 
 - `io.github.a-n-o-d-e-r` coordinates, base package `com.anode.ideagenerator` (was `bio.anode.ideagenerator`);
-- `spring-boot-starter-parent` 4.1.2, Java 25; the collection BOM (0.2.0) is imported and brings the Spring AI BOM;
+- `spring-boot-starter-parent` 4.1.2, Java 25; the collection BOM (0.3.0) is imported and brings the Spring AI BOM;
 - with `ideagen.auth=oauth` the security starter builds the chain (`anode.security.env-oidc`, derived from
   `ideagen.auth` in `application.yaml`). GitHub and Google are two Spring client registrations, so the login is
   multi-provider without starter changes. App specifics are beans the starter picks up (`config/Security.java`):
@@ -34,4 +34,4 @@ Align on one baseline built on `springboot-starter-collection`:
   resolver is set on both.
 - Not done here: the frontend still uses caret ranges and has no unit tests (`pnpm test` is skipped when absent);
   `Providers.java` is not yet Spring AI (Phase 3).
-- A collection release (0.2.0) is a prerequisite for a green CI.
+- Collection 0.3.0 is published on Maven Central; CI builds against it (0.2.0 predates the Jira create API and the security post-processors the apps need).
