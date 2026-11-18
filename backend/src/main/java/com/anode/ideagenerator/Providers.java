@@ -214,11 +214,11 @@ public final class Providers {
     }
 
     /** The base URL; on a shared server it must be a public http(s) address. */
-    private static String baseFor(AppSettings s, Provider p) {
+    static String baseFor(AppSettings s, Provider p) {
         String b = nonEmpty(s.baseUrls().get(p.id()));
         if (b == null) b = p.base == null ? "" : p.base;
         b = b.replaceAll("/+$", "");
-        if (s.shared() && !b.isEmpty()) requirePublic(b);
+        if (s.shared() && !b.isEmpty()) ChatModels.publicCheck.accept(b);
         return b;
     }
 
@@ -303,10 +303,6 @@ public final class Providers {
         throw new RuntimeException("No JSON object in answer: " + Js.cut(t, 160));
     }
 
-    private static String promptJsonRule(JsonNode schema) {
-        return "\n\nRespond with ONLY a JSON object that matches this JSON Schema. No prose, no code fences.\n" + Js.stringify(schema);
-    }
-
     // ---------------------------------------------------------------- HTTP
 
     static final HttpClient HTTP = HttpClient.newBuilder()
@@ -385,20 +381,6 @@ public final class Providers {
         };
     }
 
-    static HttpResponse<String> post(AppSettings s, String url, Map<String, String> headers, JsonNode body, Duration timeout) throws IOException {
-        Map<String, String> h = new LinkedHashMap<>(headers);
-        h.put("Content-Type", "application/json");
-        return send(s.shared() ? HTTP_NO_REDIRECT : HTTP, HttpRequest.newBuilder(URI.create(url)).timeout(timeout).POST(HttpRequest.BodyPublishers.ofString(Js.stringify(body))), h);
-    }
-
-    private static boolean ok(int status) {
-        return status >= 200 && status < 300;
-    }
-
-    private static boolean has(String text, String regex) {
-        return Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(text).find();
-    }
-
     private static void sleep(long ms) {
         try {
             Thread.sleep(ms);
@@ -407,8 +389,8 @@ public final class Providers {
         }
     }
 
-    private static RuntimeException unchecked(IOException e) {
-        return new RuntimeException(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName(), e);
+    private static boolean ok(int status) {
+        return status >= 200 && status < 300;
     }
 
     /** What Node reports as e.cause.code for a failed connection. */
@@ -417,152 +399,7 @@ public final class Providers {
         return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
     }
 
-    // ---------------------------------------------------------------- OpenAI-compatible
-
-    private static ChatResult openaiChat(AppSettings settings, Provider p, String model, ChatRequest r) {
-        String base = baseFor(settings, p);
-        if (base.isEmpty()) throw new ProviderError("no_base_url", p.label + ": set a base URL in Settings");
-        String key = keyFor(settings, p);
-        if (p.needsKey && key == null) throw new ProviderError("no_key", p.label + ": no API key (Settings → Providers)");
-        if (r.plugins() != null && !p.search) {
-            throw new ProviderError("no_search", p.label + " cannot search the web; use an OpenRouter model such as openrouter:x-ai/grok-4.3");
-        }
-        Map<String, String> headers = new LinkedHashMap<>();
-        if (key != null) {
-            if (p == Provider.AZURE) headers.put("api-key", key);
-            else headers.put("Authorization", "Bearer " + key);
-        }
-        if (p == Provider.OPENROUTER) {
-            headers.put("HTTP-Referer", "http://localhost:8300");
-            headers.put("X-Title", "Idea Generator 2");
-        }
-        boolean schemaMode = p != Provider.MLX;
-        ObjectNode body = Js.object();
-        body.put("model", model);
-        body.put("temperature", r.temperature());
-        body.put("max_tokens", r.maxTokens() != null ? r.maxTokens() : 1200);
-        if (p == Provider.OPENROUTER) {
-            body.putObject("reasoning").put("enabled", false);
-            body.putObject("usage").put("include", true);
-            if (r.plugins() != null) body.set("plugins", r.plugins());
-        }
-        String lastError = "";
-        for (int attempt = 0, adjustments = 0; attempt < 3; ) {
-            ArrayNode messages = body.putArray("messages");
-            messages.addObject().put("role", "system").put("content", r.system() + (schemaMode ? "" : promptJsonRule(r.schema())));
-            messages.addObject().put("role", "user").put("content", r.user());
-            if (schemaMode) {
-                ObjectNode js = body.putObject("response_format").put("type", "json_schema").putObject("json_schema");
-                js.put("name", r.schemaName()).put("strict", true).set("schema", r.schema());
-            } else body.remove("response_format");
-
-            HttpResponse<String> res;
-            try {
-                res = post(settings, base + "/chat/completions", headers, body, Duration.ofSeconds(r.plugins() != null ? 150 : 120));
-            } catch (IOException e) {
-                throw unchecked(e);
-            }
-            String text = res.body();
-            int status = res.statusCode();
-            // Providers disagree on parameters; adapt and retry without spending an attempt.
-            if (status == 400 && adjustments < 4) {
-                adjustments++;
-                if (body.has("reasoning") && has(text, "reasoning")) {
-                    body.remove("reasoning"); // this model insists on reasoning; thinking counts against max_tokens
-                    if (body.has("max_tokens")) body.put("max_tokens", Math.max(body.get("max_tokens").asInt() * 4, 4000));
-                    continue;
-                }
-                if (body.has("temperature") && has(text, "temperature")) {
-                    body.remove("temperature");
-                    continue;
-                }
-                if (body.has("max_tokens") && has(text, "max_tokens") && has(text, "max_completion_tokens")) {
-                    body.set("max_completion_tokens", body.remove("max_tokens"));
-                    continue;
-                }
-                if (schemaMode && has(text, "response_format|json_schema|structured")) {
-                    schemaMode = false;
-                    continue;
-                }
-            }
-            attempt++;
-            if (!ok(status)) {
-                lastError = p.label + " " + status + ": " + Js.cut(text, 300);
-                if (status == 401 || status == 403) throw new ProviderError("bad_key", lastError);
-                if (status == 429 || status >= 500) {
-                    sleep(1000L * attempt);
-                    continue;
-                }
-                throw new ProviderError("provider_error", lastError);
-            }
-            JsonNode data;
-            try {
-                data = Js.parse(text);
-            } catch (RuntimeException e) {
-                lastError = p.label + ": not JSON: " + Js.cut(text, 120);
-                continue;
-            }
-            JsonNode message = data.path("choices").path(0).path("message");
-            JsonNode content = message.path("content");
-            List<String> citations = new ArrayList<>();
-            for (JsonNode a : Js.arr(message.path("annotations"))) {
-                JsonNode url = a.path("url_citation").path("url");
-                if ("url_citation".equals(a.path("type").asString("")) && url.isString() && !url.stringValue().isEmpty()) {
-                    citations.add(url.stringValue());
-                }
-            }
-            if (Js.absent(content) || (content.isString() && content.stringValue().isEmpty())) {
-                lastError = "Empty answer from " + model;
-                continue;
-            }
-            try {
-                if (!content.isString()) throw new RuntimeException("content.replace is not a function");
-                double cost = Js.num(data.path("usage").path("cost"));
-                return new ChatResult(extractJson(content.stringValue()), Double.isFinite(cost) ? cost : 0, citations);
-            } catch (RuntimeException e) {
-                lastError = e.getMessage();
-                schemaMode = false;
-            }
-        }
-        throw new ProviderError("provider_error", lastError.isEmpty() ? p.label + " failed" : lastError);
-    }
-
-    // ---------------------------------------------------------------- Ollama (native /api/chat)
-
-    private static ChatResult ollamaChat(AppSettings settings, String model, ChatRequest r) {
-        if (r.plugins() != null) throw new ProviderError("no_search", "Ollama cannot search the web; use an OpenRouter model for the X scout");
-        String base = baseFor(settings, Provider.OLLAMA);
-        // Native API: think:false stops reasoning models (qwen3) spending every token on thinking,
-        // and format takes the JSON Schema directly.
-        ObjectNode body = Js.object();
-        body.put("model", model).put("stream", false).put("think", false).set("format", r.schema());
-        body.putObject("options").put("temperature", r.temperature()).put("num_predict", r.maxTokens() != null ? r.maxTokens() : 1200);
-        ArrayNode messages = body.putArray("messages");
-        messages.addObject().put("role", "system").put("content", r.system());
-        messages.addObject().put("role", "user").put("content", r.user());
-        for (int attempt = 0; attempt < 3; attempt++) {
-            HttpResponse<String> res;
-            try {
-                res = post(settings, base + "/api/chat", Map.of(), body, Duration.ofSeconds(300));
-            } catch (IOException | IllegalArgumentException e) {
-                throw new ProviderError("unreachable", "Ollama at " + base + " is not reachable (" + causeCode(e) + "). Is it running?");
-            }
-            String text = res.body();
-            if (res.statusCode() == 400 && body.has("think") && has(text, "think")) {
-                body.remove("think");
-                continue;
-            }
-            if (!ok(res.statusCode())) throw new ProviderError("provider_error", "Ollama " + res.statusCode() + ": " + Js.cut(text, 300));
-            try {
-                return new ChatResult(extractJson(Js.str(Js.parse(text).path("message").path("content"))), 0);
-            } catch (RuntimeException e) {
-                if (attempt == 2) throw new ProviderError("provider_error", "Ollama " + model + ": " + e.getMessage());
-            }
-        }
-        throw new ProviderError("provider_error", "Ollama " + model + " failed");
-    }
-
-    // ---------------------------------------------------------------- Anthropic (Messages API)
+    // ---------------------------------------------------------------- Anthropic helpers for the model list (chat is Spring AI: SpringAiChat)
 
     // What the upstream SDK (@anthropic-ai/sdk 1.3) sends: API version 2026-10-21, key as a Bearer token.
     static final String ANTHROPIC_VERSION = "2026-10-21";
@@ -601,55 +438,9 @@ public final class Providers {
         }
     }
 
-    private static ChatResult anthropicChat(AppSettings settings, String model, ChatRequest r) {
-        if (r.plugins() != null) throw new ProviderError("no_search", "The X scout needs OpenRouter (Grok with X search)");
-        Map<String, String> headers = new LinkedHashMap<>(anthropicHeaders(keyFor(settings, Provider.ANTHROPIC)));
-        headers.put("Content-Type", "application/json");
-        // Structured output via output_config.format. No temperature: current models reject
-        // non-default sampling. Low effort: these are short, single-shot answers.
-        ObjectNode outputConfig = Js.object();
-        outputConfig.putObject("format").put("type", "json_schema").set("schema", r.schema());
-        outputConfig.put("effort", "low");
-        for (int attempt = 0; attempt < 2; attempt++) {
-            ObjectNode body = Js.object();
-            body.put("model", model);
-            body.put("max_tokens", Math.max(r.maxTokens() != null ? r.maxTokens() : 1200, 4000));
-            body.put("system", r.system());
-            body.putArray("messages").addObject().put("role", "user").put("content", r.user());
-            body.set("output_config", outputConfig);
-            String json = Js.stringify(body);
-            HttpResponse<String> res = anthropicSend(() -> HttpRequest.newBuilder(URI.create(anthropicBase() + "/v1/messages"))
-                    .timeout(Duration.ofMinutes(10)).POST(HttpRequest.BodyPublishers.ofString(json)), headers);
-            String message = res.statusCode() + " " + res.body(); // the SDK's APIError message
-            if (res.statusCode() == 400 && outputConfig.has("effort") && has(message, "effort")) {
-                outputConfig.remove("effort"); // older models (e.g. Haiku 4.5) do not take effort
-                continue;
-            }
-            if (res.statusCode() == 401) throw new ProviderError("bad_key", "Anthropic: " + message);
-            if (!ok(res.statusCode())) throw new ProviderError("provider_error", "Anthropic " + res.statusCode() + ": " + message);
-            JsonNode msg = Js.parse(res.body());
-            if ("refusal".equals(msg.path("stop_reason").asString(""))) throw new ProviderError("refused", model + " declined to answer");
-            StringBuilder text = new StringBuilder();
-            for (JsonNode b : Js.arr(msg.path("content"))) if ("text".equals(b.path("type").asString(""))) text.append(Js.str(b.path("text")));
-            double[] price = ANTHROPIC_PRICES.getOrDefault(model, new double[]{0, 0});
-            double cost = (msg.path("usage").path("input_tokens").asDouble(0) * price[0]
-                    + msg.path("usage").path("output_tokens").asDouble(0) * price[1]) / 1e6;
-            return new ChatResult(extractJson(text.toString()), cost);
-        }
-        throw new ProviderError("provider_error", "Anthropic " + model + " failed");
-    }
-
     /** A chat function that routes every request by its "provider:model" string. */
     public static Chat makeChat(AppSettings settings) {
-        return r -> {
-            ParsedModel pm = parseModel(r.model());
-            if (pm.model().isEmpty()) throw new ProviderError("bad_model", "No model given in \"" + r.model() + "\"");
-            return switch (pm.provider().type) {
-                case "anthropic" -> anthropicChat(settings, pm.model(), r);
-                case "ollama" -> ollamaChat(settings, pm.model(), r);
-                default -> openaiChat(settings, pm.provider(), pm.model(), r);
-            };
-        };
+        return new SpringAiChat(settings);
     }
 
     // ---------------------------------------------------------------- model lists

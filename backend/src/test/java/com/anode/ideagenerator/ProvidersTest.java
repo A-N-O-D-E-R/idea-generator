@@ -88,7 +88,10 @@ class ProvidersTest {
     }
 
     static Map<String, Object> oaiAnswer(String content) {
-        return Map.of("choices", List.of(Map.of("message", Map.of("content", content))), "usage", Map.of("cost", 0.002));
+        // what a real OpenAI-compatible server always sends (the SDK requires id, object, created, model, finish_reason, role)
+        return Map.of("id", "chatcmpl-1", "object", "chat.completion", "created", 1, "model", "m",
+                "choices", List.of(Map.of("index", 0, "finish_reason", "stop", "message", Map.of("role", "assistant", "content", content))),
+                "usage", Map.of("prompt_tokens", 10, "completion_tokens", 5, "total_tokens", 15, "cost", 0.002));
     }
 
     @Test
