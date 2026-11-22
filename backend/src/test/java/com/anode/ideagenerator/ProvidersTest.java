@@ -232,6 +232,15 @@ class ProvidersTest {
     }
 
     @Test
+    void claudeCodeRunsOnlyOnTheServersOwnMachine() {
+        AppSettings shared = settingsWith(Map.of(), Map.of("claude_code", "sk-ant-oat-x")).sharedWith("/tmp/t");
+        ProviderError e = assertThrows(ProviderError.class, () -> Providers.makeChat(shared)
+                .chat(new Providers.ChatRequest("claude_code:sonnet", "s", "u", "x", Js.object(), 0)));
+        assertEquals("not_available", e.code);
+        assertEquals("not_available", assertThrows(ProviderError.class, () -> Providers.listModels(shared, Provider.CLAUDE_CODE)).code);
+    }
+
+    @Test
     void aSharedServerOnlyCallsPublicAddresses() throws Exception {
         for (String ip : List.of("127.0.0.1", "10.1.2.3", "172.16.0.1", "192.168.1.1", "169.254.169.254", "0.0.0.0", "0.1.2.3", "100.64.0.1",
                 "::1", "fd00::1", "fe80::1", "::ffff:127.0.0.1", "224.0.0.1")) {

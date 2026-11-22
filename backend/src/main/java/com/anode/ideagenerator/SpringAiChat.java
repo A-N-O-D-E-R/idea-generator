@@ -52,6 +52,7 @@ final class SpringAiChat implements Chat {
         return switch (pm.provider().type) {
             case "anthropic" -> anthropic(pm.model(), r);
             case "ollama" -> ollama(pm.model(), r);
+            case "claude-code" -> claudeCode(pm.model(), r);
             default -> openAiCompatible(pm.provider(), pm.model(), r);
         };
     }
@@ -242,6 +243,34 @@ final class SpringAiChat implements Chat {
             }
         }
         throw new ProviderError("provider_error", "Ollama " + model + " failed");
+    }
+
+    // ---------------------------------------------------------------- Claude Code (CLI)
+
+    /** No structured output in the CLI's print mode: the schema goes in the system prompt and the JSON is pulled out of the answer. */
+    private ChatResult claudeCode(String model, ChatRequest r) {
+        if (r.plugins() != null) throw new ProviderError("no_search", "The X scout needs OpenRouter (Grok with X search)");
+        String key = Providers.keyFor(settings, Provider.CLAUDE_CODE);
+        var agent = ChatModels.claudeCode(settings, key);
+        String lastError = "";
+        for (int attempt = 0; attempt < 2; attempt++) {
+            com.anode.ai.claude.ClaudeCodeResult res;
+            try {
+                res = agent.run(new com.anode.ai.claude.ClaudeCodeRequest(r.user(), null, null, model, r.system() + promptJsonRule(r.schema())));
+            } catch (com.anode.ai.claude.ClaudeCodeException e) {
+                String message = withCause(e);
+                throw new ProviderError(has(message, "log ?in|auth|token|401|credential") ? "bad_key" : "provider_error", "Claude Code: " + Js.cut(message, 300));
+            }
+            if (res.isError()) throw new ProviderError("provider_error", "Claude Code: " + Js.cut(res.text(), 300));
+            try {
+                // A subscription costs nothing per call; a Console key does, and the CLI reports it.
+                double cost = key != null && key.startsWith("sk-ant-api") ? res.raw().path("total_cost_usd").asDouble(0) : 0;
+                return new ChatResult(extractJson(res.text()), cost);
+            } catch (RuntimeException e) {
+                lastError = e.getMessage();
+            }
+        }
+        throw new ProviderError("provider_error", "Claude Code " + model + ": " + lastError);
     }
 
     // ---------------------------------------------------------------- Anthropic

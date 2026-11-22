@@ -83,6 +83,35 @@ final class ChatModels {
         });
     }
 
+    /** An empty folder for the CLI to run in: Claude Code's tools see nothing of the app's files without asking (and -p cannot ask). */
+    private static final java.nio.file.Path CLAUDE_CWD;
+    static {
+        try {
+            CLAUDE_CWD = java.nio.file.Files.createTempDirectory("ideagen-claude");
+        } catch (IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * The Claude Code CLI with the tenant's token (A-N-O-D-E-R/spring-ai-claude-code-starter, as its chatbot example's CredentialStore):
+     * an OAuth token from {@code claude setup-token} goes in CLAUDE_CODE_OAUTH_TOKEN, a Console key in ANTHROPIC_API_KEY, the other one is
+     * removed so it cannot take precedence; no token leaves the CLI's own login. One turn: the app wants an answer, not an agent run.
+     * Never on a shared server: the CLI runs on the server's machine.
+     */
+    static com.anode.ai.claude.ClaudeCodeAgent claudeCode(AppSettings settings, String token) {
+        if (settings.shared()) throw new ProviderError("not_available", "Claude Code runs on the server's own machine: not available on a shared server");
+        var config = new com.anode.ai.claude.ClaudeCodeConfig("claude", null, CLAUDE_CWD, Duration.ofMinutes(5), "default", 1, null);
+        return new com.anode.ai.claude.DefaultClaudeCodeAgent(config, new com.fasterxml.jackson.databind.ObjectMapper(), () -> {
+            Map<String, String> env = new java.util.HashMap<>(); // null values remove a variable
+            if (token == null) return env;
+            boolean apiKey = token.startsWith("sk-ant-api");
+            env.put("ANTHROPIC_API_KEY", apiKey ? token : null);
+            env.put("CLAUDE_CODE_OAUTH_TOKEN", apiKey ? null : token);
+            return env;
+        });
+    }
+
     static ChatModel ollama(AppSettings settings, String base) {
         return cached("ollama|" + base + "|" + settings.shared(), () -> {
             HttpClient jdk = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)

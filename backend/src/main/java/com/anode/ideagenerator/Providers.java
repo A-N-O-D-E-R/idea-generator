@@ -44,7 +44,9 @@ public final class Providers {
         OLLAMA("Ollama (local)", "ollama", null, null, false, true, false, null),
         MLX("MLX · mlx_lm.server (local)", "openai", null, null, false, true, false, null),
         LMSTUDIO("LM Studio (local)", "openai", null, null, false, true, false, null),
-        CUSTOM("Other OpenAI-compatible", "openai", null, "CUSTOM_API_KEY", false, false, false, null);
+        CUSTOM("Other OpenAI-compatible", "openai", null, "CUSTOM_API_KEY", false, false, false, null),
+        CLAUDE_CODE("Claude Code (local CLI)", "claude-code", null, "CLAUDE_CODE_OAUTH_TOKEN", false, true, false,
+                "Runs the claude CLI on this machine with your Claude subscription. Paste the token from `claude setup-token` (or a Console API key); left empty, the CLI's own login is used. Models: claude_code:sonnet, claude_code:opus, claude_code:haiku or a full model id.");
 
         public final String label, type, base, env, note;
         public final boolean needsKey, local;
@@ -480,6 +482,12 @@ public final class Providers {
                     if (!page.path("has_more").asBoolean(false) || Js.absent(page.path("last_id"))) return out;
                     after = page.path("last_id").asString();
                 }
+            }
+            if (p == Provider.CLAUDE_CODE) {
+                // A one-word run checks the CLI and the token; the CLI takes its aliases or any full model id.
+                var res = ChatModels.claudeCode(settings, key).run(new com.anode.ai.claude.ClaudeCodeRequest("Reply with OK.", null, null, "haiku", null));
+                if (res.isError()) throw new ProviderError("bad_key", "Claude Code: " + Js.cut(res.text(), 200));
+                return List.of("sonnet", "opus", "haiku");
             }
             if (p == Provider.OLLAMA) {
                 List<String> out = new ArrayList<>();

@@ -7,7 +7,7 @@ import type { AppSettings, ProviderId, Role, SettingsResponse, SettingsUpdate } 
 /** Where settings (keys included) lived before they moved to the server. */
 const LEGACY_KEY = 'ideagen.settings.v1'
 export const ROLES: Role[] = ['distill', 'expand', 'combine', 'judge', 'summary', 'research', 'x', 'brief']
-export const PROVIDER_IDS: ProviderId[] = ['openrouter', 'anthropic', 'openai', 'azure', 'ollama', 'mlx', 'lmstudio', 'custom']
+export const PROVIDER_IDS: ProviderId[] = ['openrouter', 'anthropic', 'openai', 'azure', 'ollama', 'mlx', 'lmstudio', 'custom', 'claude_code']
 
 const SONNET = 'openrouter:anthropic/claude-sonnet-5.5'
 export const DEFAULTS: AppSettings = {

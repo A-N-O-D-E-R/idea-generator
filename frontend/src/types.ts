@@ -3,7 +3,7 @@
 export type Kind = 'seed' | 'expand' | 'combine' | 'guest'
 export type Lang = 'sv' | 'en'
 export type Role = 'distill' | 'expand' | 'combine' | 'judge' | 'summary' | 'research' | 'x' | 'brief'
-export type ProviderId = 'openrouter' | 'anthropic' | 'openai' | 'azure' | 'ollama' | 'mlx' | 'lmstudio' | 'custom'
+export type ProviderId = 'openrouter' | 'anthropic' | 'openai' | 'azure' | 'ollama' | 'mlx' | 'lmstudio' | 'custom' | 'claude_code'
 export type LeadSource = 'x' | 'research'
 
 /** GET /api/me: none = the local single-user tool, oauth = a shared server with accounts. */

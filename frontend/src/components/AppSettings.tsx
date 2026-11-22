@@ -16,11 +16,11 @@ import { S, emit, fail, isShared, notify, openDialog, useStore, warnMissingKeys 
 
 const PROVIDER_LABELS: Record<ProviderId, string> = {
   openrouter: 'OpenRouter', anthropic: 'Anthropic', openai: 'OpenAI',
-  azure: 'Azure OpenAI / Microsoft Foundry (Copilot models)', ollama: 'Ollama', mlx: 'MLX (mlx_lm.server)', lmstudio: 'LM Studio', custom: 'OpenAI-compatible',
+  azure: 'Azure OpenAI / Microsoft Foundry (Copilot models)', ollama: 'Ollama', mlx: 'MLX (mlx_lm.server)', lmstudio: 'LM Studio', custom: 'OpenAI-compatible', claude_code: 'Claude Code (local CLI)',
 }
 const HAS_URL: ProviderId[] = ['ollama', 'mlx', 'lmstudio', 'azure', 'custom']
-const HAS_KEY: ProviderId[] = ['openrouter', 'anthropic', 'openai', 'azure', 'custom']
-const LOCAL: ProviderId[] = ['ollama', 'mlx', 'lmstudio']
+const HAS_KEY: ProviderId[] = ['openrouter', 'anthropic', 'openai', 'azure', 'custom', 'claude_code']
+const LOCAL: ProviderId[] = ['ollama', 'mlx', 'lmstudio', 'claude_code']
 
 /** <datalist> of models found with the Test buttons, for every model field. */
 export function ModelList() {
@@ -118,13 +118,13 @@ export function AppSettings() {
                   variant="outline"
                   className={cn('text-subtle', st?.keySource ? 'border-emerald-600 text-emerald-700' : !st?.local && 'border-[#6b5521] text-gold')}
                 >
-                  {st?.local ? t('local') : st?.keySource ? t(`keyFrom_${st.keySource}`) : t('keyMissing')}
+                  {st?.keySource ? t(`keyFrom_${st.keySource}`) : st?.local ? t('local') : t('keyMissing')}
                 </Badge>
               </div>
               {st?.note ? <small className="text-muted-foreground">{st.note}</small> : null}
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 {HAS_KEY.includes(p) ? (
-                  <KeyInput name={p} stored={!!s.keys[p]?.stored} typed={typed} setTyped={setTyped} drop={drop} setDrop={setDrop} />
+                  <KeyInput name={p} stored={!!s.keys[p]?.stored} placeholder={p === 'claude_code' ? 'sk-ant-oat… (claude setup-token)' : undefined} typed={typed} setTyped={setTyped} drop={drop} setDrop={setDrop} />
                 ) : null}
                 {HAS_URL.includes(p) ? (
                   <Input

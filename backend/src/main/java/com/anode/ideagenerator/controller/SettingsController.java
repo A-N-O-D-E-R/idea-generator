@@ -64,7 +64,7 @@ class SettingsController {
         return providers.status(tenant.id());
     }
 
-    @PostMapping("/providers/{id:[a-z]+}/models")
+    @PostMapping("/providers/{id:[a-z_]+}/models")
     Object models(@PathVariable String id, @RequestBody(required = false) byte[] raw) {
         body(raw);
         return providers.models(tenant.id(), id);
