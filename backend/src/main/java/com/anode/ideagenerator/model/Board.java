@@ -43,7 +43,7 @@ public record Board(
             Flow flow,
             String judgeGuidance,
             Researchers researchers,
-            /* fallback language for generated text: sv | en */
+            /* fallback language for generated text: fr | en */
             String lang,
             /* manual | auto */
             String mode,
@@ -63,19 +63,19 @@ public record Board(
     // Templates for a board's creation flow. The prompts are in English; the
     // output language is decided per request (same language as the seed).
     public static final List<Template> DEFAULT_TEMPLATES = List.of(
-            new Template(0, "Uppfinnaren · Inventor",
+            new Template(0, "L'Inventeur · Inventor",
                     "You are a brilliant, practical inventor. You think in mechanisms: what exactly happens, for whom, and why it works. You avoid buzzwords.",
                     "Generate 3 new ideas that grow out of the concept. Make them clearly different from each other: one close variation that sharpens it, one that borrows a mechanism from a completely different field, and one bold leap.",
                     "Fuse the two ideas into ONE new concept that neither could be alone. Name the specific mechanism that connects them; do not just list both.", 0),
-            new Template(0, "Affärsstrategen · Business",
+            new Template(0, "Le Stratège · Business",
                     "You are a sharp business strategist who has built and sold companies. You care about who pays, why now, and what makes it hard to copy.",
                     "Generate 3 ideas for products, services or business models that grow out of the concept. Each must say who the customer is and how money is made, and they must differ from each other.",
                     "Merge the two ideas into ONE business concept where each part strengthens the other's business model. State who pays and why.", 1),
-            new Template(0, "Omställaren · Sustainability",
+            new Template(0, "Le Transitionneur · Sustainability",
                     "You are a systems thinker working on sustainability and local communities. You favour solutions that cut resource use and that ordinary people and municipalities can start with today.",
                     "Generate 3 ideas that grow out of the concept and make it more sustainable socially, ecologically or economically. Make them differ in scale: household, organisation, and region.",
                     "Combine the two ideas into ONE solution where the sustainability gain of one multiplies the other. Be concrete about what changes.", 2),
-            new Template(0, "Galningen · Wild card",
+            new Template(0, "Le Fou · Wild card",
                     "You are a playful, fearless provocateur. You turn assumptions upside down and find the idea nobody dares say out loud, but every idea must still be explainable in two sentences and possible to actually try.",
                     "Generate 3 surprising, unconventional ideas that grow out of the concept. Each must break at least one obvious assumption.",
                     "Crash the two ideas together into ONE unexpected concept. The stranger the connection the better, as long as it can actually be done.", 3));
@@ -87,7 +87,7 @@ public record Board(
     public static Config defaultConfig(Template t) {
         return new Config(t.name(), new Flow(t.system(), t.expand(), t.combine()), "",
                 new Researchers(new Researcher(true, ""), new Researcher(true, "")),
-                "sv", "manual", 10, new Rate(60, 1), true, true, new LinkedHashMap<>());
+                "fr", "manual", 10, new Rate(60, 1), true, true, new LinkedHashMap<>());
     }
 
     private static String s(JsonNode v, int max, String fallback) {
@@ -133,7 +133,7 @@ public record Board(
                                 s(rx.path("focus"), 300, base.researchers().x().focus())),
                         new Researcher(b(rr.path("enabled"), base.researchers().research().enabled()),
                                 s(rr.path("focus"), 300, base.researchers().research().focus()))),
-                lang.isString() && List.of("en", "sv").contains(lang.stringValue()) ? lang.stringValue() : base.lang(),
+                lang.isString() && List.of("en", "fr").contains(lang.stringValue()) ? lang.stringValue() : base.lang(),
                 mode.isString() && List.of("auto", "manual").contains(mode.stringValue()) ? mode.stringValue() : base.mode(),
                 Double.isFinite(secs) ? (int) Math.min(3600, Math.max(3, Math.round(secs))) : base.autopilotSeconds(),
                 new Rate(

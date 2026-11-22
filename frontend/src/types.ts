@@ -1,7 +1,7 @@
 // API payloads, as served by the backend (upstream server/app.ts, db.ts, engine.ts).
 
 export type Kind = 'seed' | 'expand' | 'combine' | 'guest'
-export type Lang = 'sv' | 'en'
+export type Lang = 'fr' | 'en'
 export type Role = 'distill' | 'expand' | 'combine' | 'judge' | 'summary' | 'research' | 'x' | 'brief'
 export type ProviderId = 'openrouter' | 'anthropic' | 'openai' | 'azure' | 'ollama' | 'mlx' | 'lmstudio' | 'custom' | 'claude_code'
 export type LeadSource = 'x' | 'research'

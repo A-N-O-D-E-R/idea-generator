@@ -595,7 +595,7 @@ export function autopilotChip() {
   const st = S.autopilot ?? { state: 'manual' }
   if (S.board?.config.mode !== 'auto') return { text: '', title: '', tone: '' }
   const secs = st.until ? Math.max(0, Math.ceil((st.until - Date.now()) / 1000)) : 0
-  const time = st.until ? new Date(st.until).toLocaleTimeString(getLang() === 'sv' ? 'sv-SE' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : ''
+  const time = st.until ? new Date(st.until).toLocaleTimeString(getLang() === 'fr' ? 'fr-FR' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : ''
   const key = st.state === 'idle' ? (st.last === 'empty' ? 'ap_idle_empty' : st.last === 'nothing_to_do' ? 'ap_idle_nothing' : 'ap_idle') : `ap_${st.state}`
   return {
     text: t(key, { s: `${secs} s`, time, m: st.message ?? '' }),

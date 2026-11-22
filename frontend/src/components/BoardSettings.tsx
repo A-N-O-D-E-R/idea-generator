@@ -108,7 +108,7 @@ export function BoardSettings() {
         <Field label={t('title')}><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
         <Field label={t('goal')}><Textarea rows={2} value={goal} placeholder={t('goalPlaceholder')} onChange={(e) => setGoal(e.target.value)} /></Field>
         <Field label={t('language')}>
-          <Sel<Lang> value={c.lang} onChange={(v) => set({ lang: v })} items={[{ value: 'sv', label: 'Svenska' }, { value: 'en', label: 'English' }]} />
+          <Sel<Lang> value={c.lang} onChange={(v) => set({ lang: v })} items={[{ value: 'fr', label: 'Français' }, { value: 'en', label: 'English' }]} />
         </Field>
       </Fieldset>
       <Fieldset legend={t('flow')}>

@@ -41,7 +41,7 @@ final class Requests {
     }
 
     static String lang(String v) {
-        return "en".equals(v) ? "en" : "sv";
+        return "en".equals(v) ? "en" : "fr";
     }
 
     /** body.lang, if it is a string. */

@@ -97,7 +97,7 @@ public final class Providers {
             baseUrls.put("lmstudio", "http://localhost:1234/v1");
             baseUrls.put("azure", "");
             baseUrls.put("custom", "");
-            // Sonnet 5.5: calibrated judge, idiomatic Swedish. Grok: the only route that can search X.
+            // Sonnet 5.5: calibrated judge, idiomatic French. Grok: the only route that can search X.
             Map<String, String> models = new LinkedHashMap<>();
             for (String r : ROLES) models.put(r, r.equals("x") ? "openrouter:x-ai/grok-4.3" : SONNET);
             return new AppSettings(new LinkedHashMap<>(), baseUrls, models, "~/Projekt/idea-projects", 5, "", "", "", "", "", "", false);

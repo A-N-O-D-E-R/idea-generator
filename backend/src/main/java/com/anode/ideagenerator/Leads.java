@@ -45,7 +45,7 @@ public final class Leads {
 
     public record Found(List<Lead.Draft> leads, int dropped) {}
 
-    static final Map<String, String> LANG_NAME = Map.of("sv", "idiomatic Swedish", "en", "English");
+    static final Map<String, String> LANG_NAME = Map.of("fr", "idiomatic French", "en", "English");
     static final String DEFAULT_TOPIC = "new technology, AI tools, and new ways people actually use them";
 
     static final String LEAD_PROPS = """

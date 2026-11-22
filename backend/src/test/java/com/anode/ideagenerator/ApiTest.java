@@ -208,7 +208,7 @@ class ApiTest {
 
     JsonNode newBoard(String extraJson) {
         ObjectNode body = (ObjectNode) Js.parse(extraJson);
-        if (!body.has("lang")) body.put("lang", "sv");
+        if (!body.has("lang")) body.put("lang", "fr");
         return api("POST", "/api/boards", body).data().path("board");
     }
 
@@ -246,7 +246,7 @@ class ApiTest {
         JsonNode board = newBoard("{\"goal\":\"Färre bilresor i staden\"}");
         assertEquals("Ny tavla", board.path("title").asString());
         assertEquals("manual", board.path("config").path("mode").asString());
-        assertEquals("Uppfinnaren · Inventor", board.path("config").path("flowName").asString(), "the first template seeds the flow");
+        assertEquals("L'Inventeur · Inventor", board.path("config").path("flowName").asString(), "the first template seeds the flow");
 
         int before = calls.size();
         JsonNode s = seed(id(board), "Lånecyklar");
@@ -274,7 +274,7 @@ class ApiTest {
         JsonNode j = api("POST", "/api/ideas/" + id(c.path("idea")) + "/judge", Map.of()).data().path("idea");
         assertEquals(List.of(5, 1, 4), List.of(j.path("originality").asInt(), j.path("feasibility").asInt(), j.path("impact").asInt()), "scores are clamped");
 
-        Res md = api("GET", "/api/boards/" + id(board) + "/export.md?lang=sv");
+        Res md = api("GET", "/api/boards/" + id(board) + "/export.md?lang=fr");
         assertTrue(md.type().startsWith("text/markdown"), md.type());
         assertTrue(md.text().startsWith("# Ny tavla"));
         assertTrue(md.text().contains("> Färre bilresor i staden"));
@@ -321,7 +321,7 @@ class ApiTest {
         assertEquals(0, c.path("rate").path("usdPerDay").asDouble());
         assertEquals(3, c.path("autopilotSeconds").asInt());
         assertTrue(c.path("flow").path("system").asString().length() > 20, "an empty prompt keeps the old one");
-        assertEquals("sv", c.path("lang").asString());
+        assertEquals("fr", c.path("lang").asString());
     }
 
     @Test
@@ -449,7 +449,7 @@ class ApiTest {
         assertEquals("Tavlan rör sig mot ljud.", data.path("board").path("summary").path("headline").asString());
         assertEquals(2, data.path("board").path("summary").path("ideaCount").asInt());
         String md = api("GET", "/api/boards/" + id(board) + "/export.md").text();
-        assertTrue(md.contains("## Sammanfattning\n\nTavlan rör sig mot ljud."), md);
+        assertTrue(md.contains("## Synthèse\n\nTavlan rör sig mot ljud."), md);
     }
 
     @Test
@@ -576,7 +576,7 @@ class ApiTest {
         assertTrue(withSummary.path("summary").path("stale").isBoolean());
         assertTrue(before.path("synthesis").isNull());
 
-        JsonNode after = api("POST", "/api/report/synthesis", Map.of("days", 30, "lang", "sv")).data();
+        JsonNode after = api("POST", "/api/report/synthesis", Map.of("days", 30, "lang", "fr")).data();
         ChatRequest call = lastCall("synthesis");
         assertTrue(call.user().contains("Sjungande parkbänk"), "the synthesis sees the boards' best ideas");
         assertTrue(call.user().contains("Claude Code projects:"));
@@ -584,9 +584,9 @@ class ApiTest {
         assertTrue(after.path("synthesis").path("headline").isString());
         assertEquals(30, after.path("synthesis").path("days").asInt());
 
-        String md = api("GET", "/api/report.md?days=30&lang=sv").text();
+        String md = api("GET", "/api/report.md?days=30&lang=fr").text();
         assertTrue(has(md, "^# Rapport · \\d{4}-\\d{2}-\\d{2}"));
-        assertTrue(md.contains("## Slutsatser"));
+        assertTrue(md.contains("## Conclusions"));
         assertTrue(has(md, "cd \".*sjungande-bank\" && claude"));
     }
 

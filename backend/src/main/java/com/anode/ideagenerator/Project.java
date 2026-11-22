@@ -56,7 +56,7 @@ public final class Project {
             list("2–5 questions a human must answer."),
             list("2–4 main risks.")));
 
-    static final Map<String, String> LANG_NAME = Map.of("sv", "Swedish", "en", "English");
+    static final Map<String, String> LANG_NAME = Map.of("fr", "French", "en", "English");
 
     private static String fmt(Idea i) {
         return Llm.fmtIdea(i.title(), i.pitch());
@@ -90,7 +90,7 @@ public final class Project {
                         sum != null ? "Jury verdict: originality " + idea.originality() + ", feasibility " + idea.feasibility() + ", impact "
                                 + idea.impact() + " (of 5). " + (idea.reason() == null ? "" : idea.reason()) : "",
                         !lineage.isEmpty() ? "It grew out of these ideas:\n" + lineage.stream().map(i -> "- " + fmt(i)).collect(Collectors.joining("\n")) : "",
-                        "Write in the language of the idea; if that is unclear, in " + LANG_NAME.get(lang) + ". If Swedish, write idiomatic Swedish. The slug is always ASCII.")
+                        "Write in the language of the idea; if that is unclear, in " + LANG_NAME.get(lang) + ". If French, write idiomatic French. The slug is always ASCII.")
                 .filter(x -> !x.isEmpty()).collect(Collectors.joining("\n\n"));
         ChatResult r = chat.chat(new ChatRequest(model,
                 "You are a senior product engineer who turns raw ideas into crisp kickoff briefs. You favour the smallest build that tests the core mechanism, and you name the hard parts honestly.",
@@ -120,19 +120,19 @@ public final class Project {
                   String start, String then, String vaultIntro) {}
 
     static final Map<String, Labels> L = Map.of(
-            "sv", new Labels("Projektet föddes på en idétavla i Idégeneratorn",
-                    "Den här filen är briefen: läs den innan du börjar och håll den aktuell när beslut fattas.",
-                    "Idén", "Tavlans mål", "Juryns bedömning", "Originalitet", "Genomförbarhet", "Effekt", "Medalj satt för hand",
-                    "Problem", "Vem det är för", "MVP: minsta bygget som prövar kärnan", "Utanför första versionen", "Föreslagen stack",
-                    "Första stegen", "Öppna frågor", "Risker", "Var idén kom ifrån", "källa",
-                    Map.of("seed", "Frö", "expand", "Förgrening", "combine", "Korsning", "guest", "Gäst"), "från tavlan",
-                    "Arbetsregler",
-                    List.of("Bygg först den minsta versionen som prövar kärnmekanismen; lägg till komplexitet först när den fungerar.",
-                            "Verifiera varje steg genom att köra det, inte bara genom att läsa koden.",
-                            "Fråga innan något kostar pengar (betalda API:er) eller publiceras.",
-                            "Anteckningar och idéer hör hemma i `vault/` (Obsidian), som aldrig checkas in."),
-                    "Kom igång", "Säg sedan: \"Läs CLAUDE.md och föreslå en plan för första steget.\"",
-                    "Arbetsanteckningar för projektet. Mappen är gitignorerad."),
+            "fr", new Labels("Ce projet est né sur un tableau d'idées dans Idea Generator",
+                    "Ce fichier est le brief : lis-le avant de commencer et tiens-le à jour au fil des décisions.",
+                    "L'idée", "Objectif du tableau", "Verdict du jury", "Originalité", "Faisabilité", "Impact", "Médaille fixée à la main",
+                    "Problème", "Pour qui", "MVP : le plus petit build qui teste le cœur", "Hors périmètre pour l'instant", "Stack proposée",
+                    "Premières étapes", "Questions ouvertes", "Risques", "D'où vient l'idée", "source",
+                    Map.of("seed", "Graine", "expand", "Branche", "combine", "Croisement", "guest", "Invitée"), "du tableau",
+                    "Règles de travail",
+                    List.of("Construis d'abord la plus petite version qui teste le mécanisme central ; n'ajoute de la complexité qu'une fois qu'elle marche.",
+                            "Vérifie chaque étape en l'exécutant, pas seulement en lisant le code.",
+                            "Demande avant tout ce qui coûte de l'argent (API payantes) ou publie quoi que ce soit.",
+                            "Les notes et idées vont dans `vault/` (Obsidian), qui n'est jamais commité."),
+                    "Pour démarrer", "Puis dis : \"Lis CLAUDE.md et propose un plan pour la première étape.\"",
+                    "Notes de travail du projet. Ce dossier est gitignoré."),
             "en", new Labels("This project was born on an idea board in Idea Generator",
                     "This file is the brief: read it before you start, and keep it up to date as decisions are made.",
                     "The idea", "Board goal", "Jury verdict", "Originality", "Feasibility", "Impact", "Medal set by hand",

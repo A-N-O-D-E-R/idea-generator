@@ -25,9 +25,9 @@ public final class Markdown {
                   String strongest, String gaps, String next, String stale) {}
 
     static final Map<String, Labels> LABELS = Map.of(
-            "sv", new Labels("Flöde", "idéer", "Exporterad", "Frö", "Källa", "Föräldrar", "Originalitet", "Genomförbarhet", "Effekt",
-                    "Ej bedömd", "satt för hand", "Gäst från tavlan", "Claude Code-projekt", "Sammanfattning", "Starkast", "Luckor",
-                    "Nästa steg", "Sammanfattningen är äldre än tavlan"),
+            "fr", new Labels("Flux", "idées", "Exporté", "Graine", "Source", "Parents", "Originalité", "Faisabilité", "Impact",
+                    "Non évaluée", "fixée à la main", "Invitée du tableau", "Projet Claude Code", "Synthèse", "Points forts", "Lacunes",
+                    "Prochaines étapes", "La synthèse est plus ancienne que le tableau"),
             "en", new Labels("Flow", "ideas", "Exported", "Seed", "Source", "Parents", "Originality", "Feasibility", "Impact",
                     "Not judged", "set by hand", "Guest from board", "Claude Code project", "Summary", "Strongest", "Gaps",
                     "Next steps", "The summary is older than the board"));
@@ -114,9 +114,9 @@ public final class Markdown {
                         String best, String summary, String stale, String none) {}
 
     static final Map<String, ReportLabels> REPORT_LABELS = Map.of(
-            "sv", new ReportLabels("Rapport", "Senaste {n} dagarna", "tavlor", "idéer", "nya", "Claude Code-projekt", "Förbrukat",
-                    "Slutsatser", "Insikter", "Mest värt att driva vidare", "Möjligheter", "Nästa steg", "Mål", "Bästa idéerna",
-                    "Sammanfattning", "äldre än tavlan", "Inga ännu."),
+            "fr", new ReportLabels("Rapport", "{n} derniers jours", "tableaux", "idées", "nouvelles", "Projets Claude Code", "Dépensé",
+                    "Conclusions", "Enseignements", "Les plus prometteuses", "Opportunités", "Prochaines étapes", "Objectif", "Meilleures idées",
+                    "Synthèse", "plus ancienne que le tableau", "Aucune pour l'instant."),
             "en", new ReportLabels("Report", "Last {n} days", "boards", "ideas", "new", "Claude Code projects", "Spent", "Conclusions",
                     "Insights", "Most worth pursuing", "Opportunities", "Next steps", "Goal", "Best ideas", "Summary",
                     "older than the board", "None yet."));

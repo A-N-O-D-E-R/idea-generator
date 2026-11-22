@@ -88,7 +88,7 @@ public final class CalibrateJudge {
     static Row judge(Llm llm, String model, String text, DoubleAdder cost) {
         List<Llm.Judgement> runs = new ArrayList<>();
         for (int r = 0; r < RUNS; r++) {
-            Llm.Out<Llm.Judgement> out = llm.judge(model, "", asIdea(text), "sv", null, null);
+            Llm.Out<Llm.Judgement> out = llm.judge(model, "", asIdea(text), "fr", null, null);
             cost.add(out.costUsd());
             runs.add(out.value());
         }

@@ -69,11 +69,11 @@ class LeadsProjectTest {
 
     @Test
     void claudeMdHasVerdictGoalNumberedStepsAndLineage() {
-        String md = Project.renderClaudeMd(BRIEF, IDEA, "Ljud", List.of(idea(2, "Gäst", "G", "guest", "Ljusbordet")), "sv", "2026-11-02");
-        assertTrue(md.contains("Originalitet 5 · Genomförbarhet 4 · Effekt 4 = 13/15 🥇"), md);
-        assertTrue(md.contains("## Tavlans mål\n\nLjud"));
+        String md = Project.renderClaudeMd(BRIEF, IDEA, "Ljud", List.of(idea(2, "Gäst", "G", "guest", "Ljusbordet")), "fr", "2026-11-02");
+        assertTrue(md.contains("Originalité 5 · Faisabilité 4 · Impact 4 = 13/15 🥇"), md);
+        assertTrue(md.contains("## Objectif du tableau\n\nLjud"));
         assertTrue(md.contains("1. f1\n2. f2"));
-        assertTrue(md.contains("- Gäst (från tavlan Ljusbordet): **Gäst** G"));
+        assertTrue(md.contains("- Invitée (du tableau Ljusbordet): **Gäst** G"));
     }
 
     @Test

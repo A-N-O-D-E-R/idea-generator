@@ -66,7 +66,7 @@ export function AppSidebar() {
   const settings: Item[] = [
     { label: t('boardSettings'), icon: SlidersHorizontal, disabled: !board, onClick: () => openDialog({ kind: 'boardSettings' }) },
     { label: t('appSettings'), icon: KeyRound, onClick: () => openDialog({ kind: 'appSettings' }) },
-    { label: getLang() === 'sv' ? 'English' : 'Svenska', icon: Languages, onClick: () => { setLang(getLang() === 'sv' ? 'en' : 'sv'); emit() } },
+    { label: getLang() === 'fr' ? 'English' : 'Français', icon: Languages, onClick: () => { setLang(getLang() === 'fr' ? 'en' : 'fr'); emit() } },
   ]
   return (
     <Sidebar

@@ -113,11 +113,11 @@ public final class Llm {
 
     // ---------------------------------------------------------------- prompts
 
-    static final Map<String, String> LANG_NAME = Map.of("sv", "Swedish", "en", "English");
+    static final Map<String, String> LANG_NAME = Map.of("fr", "French", "en", "English");
 
     static String languageRule(String lang) {
         return "Write in the same language as the source idea(s). If that is unclear or mixed, write in " + LANG_NAME.get(lang) + ". "
-                + "If you write Swedish, write idiomatic Swedish: correct agreement, no invented compound words, no anglicisms where a Swedish word exists.";
+                + "If you write French, write idiomatic French: correct agreement, no anglicisms where a French word exists.";
     }
 
     static String context(String goal, List<String> existingTitles) {
@@ -228,7 +228,7 @@ public final class Llm {
     }
 
     private static String writeIn(String lang) {
-        return "Write in " + LANG_NAME.get(lang) + ("sv".equals(lang) ? " (idiomatic Swedish)" : "");
+        return "Write in " + LANG_NAME.get(lang) + ("fr".equals(lang) ? " (idiomatic French)" : "");
     }
 
     /** A synthesis of everything on a board. ideas: sorted strongest first. */

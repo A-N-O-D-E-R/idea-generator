@@ -151,7 +151,7 @@ public final class Extract {
         return HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(12))
                 .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36")
                 .header("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8")
-                .header("Accept-Language", "sv,en;q=0.8")
+                .header("Accept-Language", "fr,en;q=0.8")
                 .GET().build();
     }
 

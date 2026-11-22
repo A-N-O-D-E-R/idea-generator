@@ -1,117 +1,117 @@
-// Swedish and English. The interface language is per browser; generated text
+// French and English. The interface language is per browser; generated text
 // follows the language of its seed (the board's language is only a fallback).
 
 import type { Lang } from './types'
 
 const DICT: Record<Lang, Record<string, string>> = {
-  sv: {
+  fr: {
     appName: 'MUSE', appTagline: 'Multiple Unconventional Solutions Explorer',
-    seedPlaceholder: 'Skriv en idé eller klistra in en länk … (Enter)',
-    readingPage: 'Läser sidan …',
-    thinking: 'Tänker …',
-    boards: 'Tavlor',
-    newBoard: 'Ny tavla',
-    goal: 'Mål',
-    goalPlaceholder: 't.ex. innovativ audiovisuell produkt för interaktion i offentliga miljöer',
-    noGoal: 'Inget mål ännu – klicka för att sätta riktningen',
-    title: 'Namn',
-    template: 'Flödesmall',
-    create: 'Skapa',
-    cancel: 'Avbryt',
-    save: 'Spara',
-    close: 'Stäng',
-    delete: 'Radera',
-    manual: 'Manuell',
-    auto: 'Automatisk',
-    leads: 'Spaning',
-    dashboard: 'Trender',
-    exhibit: 'Utställning',
-    export: 'Exportera',
-    boardSettings: 'Tavlans inställningar',
-    appSettings: 'Inställningar',
-    fit: 'Visa allt',
+    seedPlaceholder: 'Écris une idée ou colle un lien … (Entrée)',
+    readingPage: 'Lecture de la page …',
+    thinking: 'Réflexion …',
+    boards: 'Tableaux',
+    newBoard: 'Nouveau tableau',
+    goal: 'Objectif',
+    goalPlaceholder: 'ex. produit audiovisuel innovant pour l\'interaction dans les espaces publics',
+    noGoal: 'Pas encore d\'objectif – clique pour fixer la direction',
+    title: 'Nom',
+    template: 'Modèle de flux',
+    create: 'Créer',
+    cancel: 'Annuler',
+    save: 'Enregistrer',
+    close: 'Fermer',
+    delete: 'Supprimer',
+    manual: 'Manuel',
+    auto: 'Automatique',
+    leads: 'Veille',
+    dashboard: 'Tendances',
+    exhibit: 'Exposition',
+    export: 'Exporter',
+    boardSettings: 'Réglages du tableau',
+    appSettings: 'Réglages',
+    fit: 'Tout afficher',
     // kinds
-    kind_seed: 'Frö', kind_expand: 'Förgrening', kind_combine: 'Korsning', kind_guest: 'Gäst',
-    generation: 'generation {n}',
-    fromBoard: 'från tavlan {b}',
+    kind_seed: 'Graine', kind_expand: 'Branche', kind_combine: 'Croisement', kind_guest: 'Invitée',
+    generation: 'génération {n}',
+    fromBoard: 'du tableau {b}',
     // detail
-    notJudged: 'Inte bedömd ännu',
-    judging: 'Juryn läser …',
-    originality: 'Originalitet', feasibility: 'Genomförbarhet', impact: 'Effekt',
-    expand: 'Förgrena', expandHint: 'Tre nya idéer som växer ur den här',
-    combineWith: 'Korsa med …', combinePick: 'Klicka på idén att korsa med (Esc avbryter). Du kan också dra en idé på en annan.',
-    rejudge: 'Bedöm igen',
-    medal: 'Medalj', medalAuto: 'Juryn',
-    announce: 'Annonsera', announceHint: 'Skicka idén som gäst till andra tavlor, där den kan korsas med deras idéer',
-    toProductDesigner: 'Till productDesigner', productDesignerHint: 'Skicka idén till productDesigner: ett projekt med en förifylld karta (problem, frågor, utanför omfattning, dimma)', productDesignerSent: 'productDesigner: projektet «{name}» skapat ({q} frågor, {b} i dimman).', productDesignerNote: 'productDesigner: idéer kan skickas dit och blir ett projekt med en förifylld karta. Nyckeln (pd_…) skapas där (POST /api/cles-api) och lagras krypterad på servern.', toScientist: 'Till AI Scientist', scientistHint: 'Skicka idén till ai-scientist som ett idéjobb (forskningsidéer med nyhetskontroll, högst $2)', scientistSent: 'AI Scientist-jobb {id} ({s}).', scientistUrl: 'Adress', scientistNote: 'perso/ai-scientist: idéer kan skickas dit som idéjobb. Nyckeln skapas där (POST /v1/me/api-keys) och stannar i webbläsaren.', spinoff: 'Ny tavla av idén', spinoffHint: 'Förfina idén i en egen tavla med den som mål',
-    project: 'Claude Code-projekt', projectHint: 'Skapa en projektmapp med CLAUDE.md som Claude Code kan börja från',
-    projectMaking: 'Skriver brief …',
-    revealProject: 'Visa i Finder', copyStart: 'Kopiera startkommando', copied: 'Kopierat', downloadProject: 'Ladda ner (.zip)',
-    signInTitle: 'Logga in', signInNote: 'Varje konto har egna tavlor, idéer och krypterade API-nycklar.', signInWith: 'Logga in med {p}',
-    signInFailed: 'Inloggningen misslyckades. Försök igen.', signOut: 'Logga ut',
-    source: 'Källa', spinoffs: 'Egna tavlor', keywords: 'Nyckelord',
-    deleteIdea: 'Radera idén', confirmDelete: 'Radera "{t}"?',
+    notJudged: 'Pas encore évaluée',
+    judging: 'Le jury lit …',
+    originality: 'Originalité', feasibility: 'Faisabilité', impact: 'Impact',
+    expand: 'Ramifier', expandHint: 'Trois nouvelles idées issues de celle-ci',
+    combineWith: 'Croiser avec …', combinePick: 'Clique sur l\'idée à croiser (Échap annule). Tu peux aussi glisser une idée sur une autre.',
+    rejudge: 'Réévaluer',
+    medal: 'Médaille', medalAuto: 'Jury',
+    announce: 'Annoncer', announceHint: 'Envoyer l\'idée comme invitée sur d\'autres tableaux, où elle peut se croiser avec leurs idées',
+    toProductDesigner: 'Vers productDesigner', productDesignerHint: 'Envoyer l\'idée à productDesigner : un projet avec une carte pré-remplie (problème, questions, hors périmètre, brouillard)', productDesignerSent: 'productDesigner : projet « {name} » créé ({q} questions, {b} dans le brouillard).', productDesignerNote: 'productDesigner : les idées peuvent y être envoyées et deviennent un projet avec une carte pré-remplie. La clé (pd_…) se crée là-bas (POST /api/cles-api) et est stockée chiffrée sur le serveur.', toScientist: 'Vers AI Scientist', scientistHint: 'Envoyer l\'idée à ai-scientist comme job d\'idéation (idées de recherche avec vérification de nouveauté, 2 $ max)', scientistSent: 'Job AI Scientist {id} ({s}).', scientistUrl: 'Adresse', scientistNote: 'perso/ai-scientist : les idées peuvent y être envoyées comme jobs d\'idéation. La clé se crée là-bas (POST /v1/me/api-keys) et reste dans le navigateur.', spinoff: 'Nouveau tableau depuis l\'idée', spinoffHint: 'Affiner l\'idée sur son propre tableau, avec l\'idée comme objectif',
+    project: 'Projet Claude Code', projectHint: 'Créer un dossier projet avec un CLAUDE.md dont Claude Code peut partir',
+    projectMaking: 'Rédaction du brief …',
+    revealProject: 'Afficher dans le Finder', copyStart: 'Copier la commande de démarrage', copied: 'Copié', downloadProject: 'Télécharger (.zip)',
+    signInTitle: 'Connexion', signInNote: 'Chaque compte a ses propres tableaux, idées et clés API chiffrées.', signInWith: 'Se connecter avec {p}',
+    signInFailed: 'La connexion a échoué. Réessaie.', signOut: 'Se déconnecter',
+    source: 'Source', spinoffs: 'Tableaux dérivés', keywords: 'Mots-clés',
+    deleteIdea: 'Supprimer l\'idée', confirmDelete: 'Supprimer « {t} » ?',
     // overview
-    overview: 'Översikt', topIdeas: 'Topplista', noIdeasYet: 'Tavlan är tom. Skriv ett frö nedan, eller hämta spaning från vänsterpanelen.',
-    evolution: 'Evolution', evoLine: 'Generation {g} · snitt {first} → {latest} · bäst {best}', evoShort: 'Generation {g} · bäst {best}',
-    eloTitle: 'Elo-ranking', duel: 'Duell', duelHint: 'Två av de bästa idéerna jämförs mot varandra, två gånger med bytt ordning.', duelWin: '{w} slog {l}.', duelDraw: 'Oavgjort: {a} mot {b}.', eloLine: 'Elo {e} · {n} dueller', summary: 'Sammanfattning', summarize: 'Sammanfatta tavlan', resummarize: 'Uppdatera', summaryStale: '{n} nya idéer sedan sammanfattningen',
-    themes: 'Teman', strongest: 'Starkast', gaps: 'Luckor', nextSteps: 'Nästa steg',
+    overview: 'Vue d\'ensemble', topIdeas: 'Meilleures idées', noIdeasYet: 'Le tableau est vide. Écris une graine ci-dessous, ou récupère des pistes depuis le panneau de gauche.',
+    evolution: 'Évolution', evoLine: 'Génération {g} · moyenne {first} → {latest} · meilleure {best}', evoShort: 'Génération {g} · meilleure {best}',
+    eloTitle: 'Classement Elo', duel: 'Duel', duelHint: 'Deux des meilleures idées s\'affrontent, deux fois en inversant l\'ordre.', duelWin: '{w} a battu {l}.', duelDraw: 'Égalité : {a} contre {b}.', eloLine: 'Elo {e} · {n} duels', summary: 'Synthèse', summarize: 'Synthétiser le tableau', resummarize: 'Mettre à jour', summaryStale: '{n} nouvelles idées depuis la synthèse',
+    themes: 'Thèmes', strongest: 'Points forts', gaps: 'Lacunes', nextSteps: 'Prochaines étapes',
     // leads
-    leadsX: 'X-trender', leadsResearch: 'AI-forskning', refresh: 'Hämta', refreshing: 'Spanar …',
-    leadsEmpty: 'Inget hämtat ännu. Spanarna letar utifrån tavlans mål.', addAsSeed: '+ Frö', onBoard: 'på tavlan',
-    leadsDropped: '{n} spår utan verifierad källa sorterades bort', leadsNone: 'Inga verifierade spår hittades den här gången',
-    researcherOff: 'Den här spanaren är avstängd i tavlans inställningar.',
-    dragLead: 'Dra in på tavlan eller klicka + Frö',
+    leadsX: 'Tendances X', leadsResearch: 'Recherche IA', refresh: 'Récupérer', refreshing: 'Veille en cours …',
+    leadsEmpty: 'Rien de récupéré pour l\'instant. Les éclaireurs cherchent à partir de l\'objectif du tableau.', addAsSeed: '+ Graine', onBoard: 'sur le tableau',
+    leadsDropped: '{n} pistes sans source vérifiée écartées', leadsNone: 'Aucune piste vérifiée trouvée cette fois',
+    researcherOff: 'Cet éclaireur est désactivé dans les réglages du tableau.',
+    dragLead: 'Glisse sur le tableau ou clique + Graine',
     // autopilot
-    ap_manual: 'Manuell', ap_running: 'Arbetar …', ap_pace: 'Nästa steg om {s}', ap_hourly: 'Timgräns nådd · fortsätter {time}',
-    ap_board_budget: 'Dagsbudgeten är slut · fortsätter i morgon', ap_global_budget: 'Global dagsbudget slut · fortsätter i morgon',
-    ap_backoff: 'Fel · försöker igen om {s}', ap_error: 'Fel: {m}', ap_idle: 'Väntar', ap_idle_empty: 'Väntar på ett frö',
-    ap_idle_nothing: 'Inget mer att göra just nu',
-    apMeta: '{n} steg senaste timmen · ${usd} i dag',
+    ap_manual: 'Manuel', ap_running: 'En cours …', ap_pace: 'Prochaine étape dans {s}', ap_hourly: 'Limite horaire atteinte · reprise {time}',
+    ap_board_budget: 'Budget du jour épuisé · reprise demain', ap_global_budget: 'Budget global du jour épuisé · reprise demain',
+    ap_backoff: 'Erreur · nouvel essai dans {s}', ap_error: 'Erreur : {m}', ap_idle: 'En attente', ap_idle_empty: 'En attente d\'une graine',
+    ap_idle_nothing: 'Plus rien à faire pour l\'instant',
+    apMeta: '{n} étapes dans la dernière heure · ${usd} aujourd\'hui',
     // board settings
-    general: 'Allmänt', language: 'Språk (reserv för genererad text)', flow: 'Skapandeflöde', flowName: 'Flödets namn',
-    systemPrompt: 'Roll (systemprompt)', expandPrompt: 'Förgrening', combinePrompt: 'Korsning', applyTemplate: 'Använd mall',
-    saveAsTemplate: 'Spara som mall', templateSaved: 'Mallen sparades',
-    jury: 'Jury', judgeGuidance: 'Extra riktlinjer till juryn', judgeGuidancePh: 't.ex. Belöna lösningar som fungerar utomhus året runt.',
-    autoProject: 'Juryn gör guldidéer till Claude Code-projekt',
-    diversity: 'Håll flera idéfamiljer vid liv (trängda nischer avlar mindre)',
-    researchers: 'Spanare', xScout: 'X-trender (Grok via OpenRouter)', researchScout: 'AI-forskning (Hugging Face)', focus: 'Extra fokus',
-    focusPh: 'utöver målet, t.ex. "ljudinstallationer"',
-    autopilot: 'Autopilot', mode: 'Läge', pace: 'Sekunder mellan steg', stepsPerHour: 'Max steg per timme', usdPerDay: 'Max USD per dag',
-    rateNote: 'Dollargränser räknar bara leverantörer som rapporterar kostnad (OpenRouter, Anthropic). 0 = bara gratis (lokala) modeller.',
-    models: 'Modeller', modelsBoardNote: 'Tomt fält = appens inställning.',
-    role_distill: 'Destillera frö', role_expand: 'Förgrena', role_combine: 'Korsa', role_judge: 'Jury', role_summary: 'Sammanfatta',
-    role_research: 'Forskningsspanare', role_x: 'X-spanare', role_brief: 'Projektbrief',
-    deleteBoard: 'Radera tavlan', confirmDeleteBoard: 'Radera tavlan "{t}" med alla idéer?',
+    general: 'Général', language: 'Langue (par défaut pour le texte généré)', flow: 'Flux de création', flowName: 'Nom du flux',
+    systemPrompt: 'Rôle (prompt système)', expandPrompt: 'Ramification', combinePrompt: 'Croisement', applyTemplate: 'Utiliser le modèle',
+    saveAsTemplate: 'Enregistrer comme modèle', templateSaved: 'Modèle enregistré',
+    jury: 'Jury', judgeGuidance: 'Consignes supplémentaires pour le jury', judgeGuidancePh: 'ex. Récompenser les solutions qui fonctionnent en extérieur toute l\'année.',
+    autoProject: 'Le jury transforme les idées d\'or en projets Claude Code',
+    diversity: 'Garder plusieurs familles d\'idées en vie (les niches encombrées se reproduisent moins)',
+    researchers: 'Éclaireurs', xScout: 'Tendances X (Grok via OpenRouter)', researchScout: 'Recherche IA (Hugging Face)', focus: 'Focus supplémentaire',
+    focusPh: 'en plus de l\'objectif, ex. « installations sonores »',
+    autopilot: 'Pilote automatique', mode: 'Mode', pace: 'Secondes entre les étapes', stepsPerHour: 'Étapes max par heure', usdPerDay: 'USD max par jour',
+    rateNote: 'Les limites en dollars ne comptent que les fournisseurs qui rapportent un coût (OpenRouter, Anthropic). 0 = modèles gratuits (locaux) uniquement.',
+    models: 'Modèles', modelsBoardNote: 'Champ vide = réglage de l\'app.',
+    role_distill: 'Distiller la graine', role_expand: 'Ramifier', role_combine: 'Croiser', role_judge: 'Jury', role_summary: 'Synthétiser',
+    role_research: 'Éclaireur recherche', role_x: 'Éclaireur X', role_brief: 'Brief projet',
+    deleteBoard: 'Supprimer le tableau', confirmDeleteBoard: 'Supprimer le tableau « {t} » et toutes ses idées ?',
     // app settings
-    providers: 'Leverantörer', apiKey: 'API-nyckel', baseUrl: 'Adress', test: 'Testa', testOk: '{n} modeller', keyFrom_stored: 'nyckel sparad', keyStored: 'sparad · skriv för att byta', removeKey: 'Ta bort', keyRemoved: 'tas bort när du sparar',
-    keyFrom_env: 'nyckel från miljön', keyMissing: 'ingen nyckel', local: 'lokal',
-    projectsRoot: 'Mapp för Claude Code-projekt', workspaceRoot: 'Idé-arbetsyta (valfri)', workspaceNote: 'Mapp med INDEX.md. Varje projekt arkiveras också där som ideas/<slug>/PITCH.md.', workspaceFiled: 'Arkiverad i arbetsytan: {p}', workspaceExisted: 'Finns redan i arbetsytan: {p}', workspaceFailed: 'Kunde inte arkivera i arbetsytan: {e}', workspaceDuplicate: 'Inte arkiverad: samma idé finns redan i arbetsytan ({s}).', workspaceRelated: 'Länkad till: {s}.', workspaceRepos: 'Återanvändbart i: {s}.', workspacePapers: '{n} tidigare arbeten i PITCH.md.', reposRoots: 'Kodmappar (valfritt)', reposNote: 'Mappar vars undermappar är repon, en per rad. Deras README jämförs med idén före arkivering; träffar hamnar i EXISTING-ASSETS.md.', globalBudget: 'Global gräns, USD per dag', spend: 'Förbrukat: ${today} i dag · ${total} totalt',
-    settingsNote: 'Inställningarna sparas på servern för ditt konto. Nycklar lagras krypterade och skickas aldrig tillbaka till webbläsaren.',
-    settingsSaved: 'Inställningarna sparades',
-    needKey: 'Lägg in en API-nyckel för {p} under Inställningar.',
-    calibrateNote: 'Byter du juryns modell: kör npm run calibrate -- --model <modell> för att se att den skiljer svagt från starkt.',
+    providers: 'Fournisseurs', apiKey: 'Clé API', baseUrl: 'Adresse', test: 'Tester', testOk: '{n} modèles', keyFrom_stored: 'clé enregistrée', keyStored: 'enregistrée · saisis pour remplacer', removeKey: 'Retirer', keyRemoved: 'retirée à l\'enregistrement',
+    keyFrom_env: 'clé de l\'environnement', keyMissing: 'pas de clé', local: 'local',
+    projectsRoot: 'Dossier des projets Claude Code', workspaceRoot: 'Espace d\'idées (facultatif)', workspaceNote: 'Dossier avec INDEX.md. Chaque projet y est aussi archivé sous ideas/<slug>/PITCH.md.', workspaceFiled: 'Archivé dans l\'espace : {p}', workspaceExisted: 'Déjà dans l\'espace : {p}', workspaceFailed: 'Impossible d\'archiver dans l\'espace : {e}', workspaceDuplicate: 'Non archivé : la même idée existe déjà dans l\'espace ({s}).', workspaceRelated: 'Lié à : {s}.', workspaceRepos: 'Réutilisable dans : {s}.', workspacePapers: '{n} travaux antérieurs dans PITCH.md.', reposRoots: 'Dossiers de code (facultatif)', reposNote: 'Dossiers dont les sous-dossiers sont des dépôts, un par ligne. Leurs README sont comparés à l\'idée avant archivage ; les correspondances vont dans EXISTING-ASSETS.md.', globalBudget: 'Limite globale, USD par jour', spend: 'Dépensé : ${today} aujourd\'hui · ${total} au total',
+    settingsNote: 'Les réglages sont stockés sur le serveur pour ton compte. Les clés sont chiffrées et jamais renvoyées au navigateur.',
+    settingsSaved: 'Réglages enregistrés',
+    needKey: 'Ajoute une clé API pour {p} dans Réglages.',
+    calibrateNote: 'Tu changes le modèle du jury ? Lance npm run calibrate -- --model <modèle> pour vérifier qu\'il distingue encore le faible du fort.',
     // announce
-    announceTitle: 'Annonsera "{t}"', allBoards: 'Alla tavlor', announced: 'Gäst på {n} tavlor', announceNone: 'Redan gäst där',
-    noOtherBoards: 'Det finns inga andra tavlor ännu.',
+    announceTitle: 'Annoncer « {t} »', allBoards: 'Tous les tableaux', announced: 'Invitée sur {n} tableaux', announceNone: 'Déjà invitée là-bas',
+    noOtherBoards: 'Il n\'y a pas encore d\'autres tableaux.',
     // dashboard
-    dashTitle: 'Trender över alla tavlor', days: '{n} dagar', statIdeas: 'Idéer', statBoards: 'Tavlor', statKeywords: 'Nyckelord',
-    statRecent: 'Nya idéer, {n} dagar', keyword: 'Nyckelord', trend: 'Per dag', count: 'Idéer', change: 'Mot förra perioden',
-    onBoards: 'Tavlor', meanJury: 'Snitt jury', boardKeywords: 'Tavlornas nyckelord', ideasWith: 'Idéer om "{k}"',
-    dashEmpty: 'Inga nyckelord ännu. De kommer när juryn bedömer idéer.', tableNote: 'Hovra över en kurva för dagens värde.',
+    dashTitle: 'Tendances sur tous les tableaux', days: '{n} jours', statIdeas: 'Idées', statBoards: 'Tableaux', statKeywords: 'Mots-clés',
+    statRecent: 'Nouvelles idées, {n} jours', keyword: 'Mot-clé', trend: 'Par jour', count: 'Idées', change: 'Vs période précédente',
+    onBoards: 'Tableaux', meanJury: 'Moyenne jury', boardKeywords: 'Mots-clés par tableau', ideasWith: 'Idées sur « {k} »',
+    dashEmpty: 'Pas encore de mots-clés. Ils arrivent quand le jury évalue des idées.', tableNote: 'Survole une courbe pour la valeur du jour.',
     // report
-    report: 'Rapport', reportNew: '{n} nya', reportMedals: 'Medaljer', reportProjects: 'Claude Code-projekt',
-    reportSpent: 'Förbrukat, {n} dagar', conclusions: 'Slutsatser', writeConclusions: 'Skriv slutsatser',
-    rewriteConclusions: 'Skriv om', conclusionsHint: 'Låt AI:n läsa alla tavlor och skriva rapportens slutsatser: insikter, de idéer som är mest värda att driva vidare, möjligheter och nästa steg.',
-    conclusionsFrom: 'Skrivna {date} · gällde {n} dagar', insights: 'Insikter', standouts: 'Mest värt att driva vidare', opportunities: 'Möjligheter',
-    noProjects: 'Inga projekt ännu. Guldidéer blir projekt av sig själva, eller klicka → Claude Code-projekt på en idé.',
-    ideasWord: 'idéer', summaryOld: 'äldre än tavlan', noBoardSummary: 'Ingen sammanfattning ännu.',
+    report: 'Rapport', reportNew: '{n} nouvelles', reportMedals: 'Médailles', reportProjects: 'Projets Claude Code',
+    reportSpent: 'Dépensé, {n} jours', conclusions: 'Conclusions', writeConclusions: 'Rédiger les conclusions',
+    rewriteConclusions: 'Réécrire', conclusionsHint: 'Laisser l\'IA lire tous les tableaux et rédiger les conclusions du rapport : enseignements, idées les plus prometteuses, opportunités et prochaines étapes.',
+    conclusionsFrom: 'Rédigées le {date} · portaient sur {n} jours', insights: 'Enseignements', standouts: 'Les plus prometteuses', opportunities: 'Opportunités',
+    noProjects: 'Pas encore de projets. Les idées d\'or deviennent des projets d\'elles-mêmes, ou clique → Projet Claude Code sur une idée.',
+    ideasWord: 'idées', summaryOld: 'plus ancienne que le tableau', noBoardSummary: 'Pas encore de synthèse.',
     // misc
-    gold: '🥇 Guld: {t}', projectCreated: 'Claude Code-projekt skapat: {p}', exhibitExit: 'Esc lämnar utställningsläget',
-    err_no_key: 'Ingen API-nyckel: {m}', err_bad_key: 'Nyckeln godtogs inte: {m}', err_unreachable: 'Når inte tjänsten: {m}',
-    err_no_search: '{m}', err_url_unreadable: 'Kunde inte läsa länken: {m}', err_url_no_text: 'Sidan har för lite läsbar text.',
-    err_too_few: 'Sammanfattningen behöver minst två idéer.', err_generic: 'Något gick fel: {m}',
-    firstRun: 'Välkommen! Börja med en tavla och ett mål.',
+    gold: '🥇 Or : {t}', projectCreated: 'Projet Claude Code créé : {p}', exhibitExit: 'Échap quitte le mode exposition',
+    err_no_key: 'Pas de clé API : {m}', err_bad_key: 'La clé a été refusée : {m}', err_unreachable: 'Service injoignable : {m}',
+    err_no_search: '{m}', err_url_unreadable: 'Impossible de lire le lien : {m}', err_url_no_text: 'La page a trop peu de texte lisible.',
+    err_too_few: 'La synthèse demande au moins deux idées.', err_generic: 'Une erreur est survenue : {m}',
+    firstRun: 'Bienvenue ! Commence par un tableau et un objectif.',
   },
   en: {
     appName: 'MUSE', appTagline: 'Multiple Unconventional Solutions Explorer',
@@ -212,27 +212,28 @@ const DICT: Record<Lang, Record<string, string>> = {
     firstRun: 'Welcome! Start with a board and a goal.',
   },
 }
-DICT.sv.updateTemplate = 'Uppdatera mallen'
-DICT.sv.deleteTemplate = 'Radera mallen'
-DICT.sv.templateDeleted = 'Mallen raderades'
-DICT.sv.confirmDeleteTemplate = 'Radera mallen "{t}"?'
+DICT.fr.updateTemplate = 'Mettre à jour le modèle'
+DICT.fr.deleteTemplate = 'Supprimer le modèle'
+DICT.fr.templateDeleted = 'Modèle supprimé'
+DICT.fr.confirmDeleteTemplate = 'Supprimer le modèle « {t} » ?'
 DICT.en.updateTemplate = 'Update template'
 DICT.en.deleteTemplate = 'Delete template'
 DICT.en.templateDeleted = 'Template deleted'
 DICT.en.confirmDeleteTemplate = 'Delete the template "{t}"?'
 
-let lang: Lang = (localStorage.getItem('ideagen.lang') as Lang) || (navigator.language?.startsWith('sv') ? 'sv' : 'en')
+const stored = localStorage.getItem('ideagen.lang')
+let lang: Lang = stored === 'fr' || stored === 'en' ? stored : navigator.language?.startsWith('fr') ? 'fr' : 'en'
 document.documentElement.lang = lang
 
 export const getLang = () => lang
 export function setLang(l: string) {
-  lang = l === 'en' ? 'en' : 'sv'
+  lang = l === 'en' ? 'en' : 'fr'
   localStorage.setItem('ideagen.lang', lang)
   document.documentElement.lang = lang
 }
 
 export function t(key: string, vars: Record<string, string | number | null | undefined> = {}) {
-  let s = DICT[lang][key] ?? DICT.sv[key] ?? key
+  let s = DICT[lang][key] ?? DICT.fr[key] ?? key
   for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v))
   return s
 }
@@ -244,4 +245,4 @@ export function errorText(e: unknown) {
   return DICT[lang][key] ? t(key, { m: err?.message }) : t('err_generic', { m: err?.message ?? String(e) })
 }
 
-export const locale = () => (lang === 'sv' ? 'sv-SE' : 'en-GB')
+export const locale = () => (lang === 'fr' ? 'fr-FR' : 'en-GB')
